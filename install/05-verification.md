@@ -1,9 +1,6 @@
 # 설치 검증 — 체크리스트 및 스모크 테스트
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | 설치 담당자 — 설치 직후 및 업그레이드 후 수행 |
-| 소요 시간 | 약 15분 |
+설치 담당자를 위한 설치 검증 체크리스트 — 설치 직후 및 업그레이드 후 수행(약 15분).
 
 ---
 
@@ -82,7 +79,7 @@ curl -X DELETE http://<api>/api/kb/kb-verify
 
 ## 4. 스모크 테스트 — Enterprise 권한 (ENT 배포만)
 
-[05-ent-setup.md §6](05-ent-setup.md)의 체크리스트 7항목을 수행한다. 최소 확인 3가지:
+[04-enterprise-setup.md §6](04-enterprise-setup.md)의 체크리스트 7항목을 수행한다. 최소 확인 3가지:
 
 - 토큰 없는 API 호출이 401로 거부되는가.
 - KB 생성자가 `my_role: "owner"`를 받는가.
@@ -99,6 +96,6 @@ MCP 클라이언트(Claude Code, VS Code 등)에 서버를 등록하고 검색 �
 - §2 [1]~[8] 전 단계 통과
 - (ENT) §4 3항목 통과
 
-실패가 재현되면 [09-operations.md](09-operations.md)의 장애 대응 절 및
+실패가 재현되면 [01-runbook-k8s.md](../operations/01-runbook-k8s.md)의 장애 대응 절 및
 [알려진 제약](../support/03-known-limitations.md)을 확인하고, 해결되지 않으면 지원 채널
 ([지원 정책](../support/01-support-policy.md))로 문의한다.

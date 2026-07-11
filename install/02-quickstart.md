@@ -1,15 +1,11 @@
 # Quick Start — 평가용 설치 (docker-compose)
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | 제품 평가·PoC 담당자 |
-| 소요 시간 | 약 30분 (이미지 빌드 시간 제외) |
-| 배포 형태 | Core 모드 (인증 없음) — 단일 호스트 docker-compose |
-| 대상 버전 | 버전 체계 도입 전 — 최신 main 기준 (2026-07-05) |
+제품 평가·PoC 담당자를 위한 가장 빠른 설치 경로 — 약 30분(이미지 빌드 시간 제외), Core 모드
+(인증 없음) 단일 호스트 docker-compose 배포.
 
 이 문서는 가장 빠르게 "문서 업로드 → 인덱싱 → 검색"을 체험하는 평가용 설치를 다룬다.
-인증(SSO)·접근제어를 포함한 Enterprise 구성 평가는 [05-ent-setup.md](05-ent-setup.md),
-운영 환경 설치는 [04-install-k8s.md](04-install-k8s.md)를 참고한다.
+인증(SSO)·접근제어를 포함한 Enterprise 구성 평가는 [04-enterprise-setup.md](04-enterprise-setup.md),
+운영 환경 설치는 [03-install-k8s.md](03-install-k8s.md)를 참고한다.
 
 ---
 
@@ -84,7 +80,7 @@ curl http://localhost:8000/ready         # {"status":"ready", ...} 이면 준비
 
 `/ready`가 503이면 아직 의존 서비스 초기화 중일 수 있다. 1~2분 후 재시도하고, 계속
 실패하면 `checks`에서 false인 항목의 컨테이너 로그를 확인한다
-([07-verification.md](07-verification.md) §1 참조).
+([05-verification.md](05-verification.md) §1 참조).
 
 ### 접속 주소
 
@@ -121,7 +117,7 @@ curl -X POST http://localhost:8000/api/search \
 ```
 
 검색 응답에 업로드한 문서의 관련 청크가 점수·출처와 함께 반환되면 설치 성공이다.
-전체 검증 체크리스트는 [07-verification.md](07-verification.md) 참조.
+전체 검증 체크리스트는 [05-verification.md](05-verification.md) 참조.
 
 ## 7. AI 에이전트 연결 (선택)
 
@@ -144,7 +140,7 @@ docker compose down -v         # 중지 + 데이터 삭제
 
 | 다음 단계 | 문서 |
 |-----------|------|
-| SSO·KB 접근제어 포함 Enterprise 평가 | [05-ent-setup.md](05-ent-setup.md) |
-| 운영 환경(k8s) 설치 | [04-install-k8s.md](04-install-k8s.md) |
+| SSO·KB 접근제어 포함 Enterprise 평가 | [04-enterprise-setup.md](04-enterprise-setup.md) |
+| 운영 환경(k8s) 설치 | [03-install-k8s.md](03-install-k8s.md) |
 | 커넥터(Confluence·GitHub·웹) 설정 | rag-api [api-guide.md](../reference/01-api-guide.md) |
 | 규모 산정 | [01-requirements.md](01-requirements.md) |

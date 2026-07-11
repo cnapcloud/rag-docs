@@ -1,10 +1,7 @@
 # 연동 가이드 — LibreChat, MCP 클라이언트, 외부 플랫폼
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | 연동 애플리케이션 구성 담당자 |
-| 기준 | 사내 운영 환경에서 검증된 구성 (2026-07-05) |
-| 핵심 시나리오 | LibreChat 사용자가 자기 권한 범위의 KB만 대상으로 RAG 검색을 쓰는 구성 (§1~§4) |
+연동 애플리케이션 구성 담당자를 위한 연동 가이드. 핵심 시나리오: LibreChat 사용자가 자기
+권한 범위의 KB만 대상으로 RAG 검색을 쓰는 구성(§1~§4).
 
 ---
 
@@ -30,7 +27,7 @@ LibreChat과 본 제품이 **같은 IdP(Keycloak)를 공유**하고, LibreChat�
 
 | 항목 | 내용 |
 |------|------|
-| 본 제품 | Enterprise 배포 완료 ([05-ent-setup.md](05-ent-setup.md)) — MCP 활성 (`mcp.enabled: true`) |
+| 본 제품 | Enterprise 배포 완료 ([04-enterprise-setup.md](04-enterprise-setup.md)) — MCP 활성 (`mcp.enabled: true`) |
 | LibreChat | v1.3+ 배포 (자체 MongoDB 포함) |
 | Keycloak 클라이언트 | LibreChat용 **confidential** 클라이언트 추가 (client id + secret). 관리 콘솔용 public 클라이언트와 별개 |
 
@@ -125,9 +122,9 @@ IDE 환경은 토큰 만료 시 자동 갱신이 없으므로, 장기 사용은 
   백엔드로 연결할 수 있다 — Dify 앱/워크플로는 유지하면서 검색만 본 제품으로 교체하는
   경로. 전용 어댑터는 로드맵 항목이며 상세 가이드는 추후 제공.
 - **자체 애플리케이션**: REST `/api/search`에 사용자 토큰을 전달하는 방식이 가장 단순하다
-  ([05-ent-setup.md §5](05-ent-setup.md)).
+  ([04-enterprise-setup.md §5](04-enterprise-setup.md)).
 
 ## 7. 관측 연계
 
 챗 요청 → LLM 호출 → RAG 검색을 하나의 trace로 잇는 Langfuse 연동과 Prometheus·Grafana
-대시보드 구성은 [10-observability.md](10-observability.md) 참조.
+대시보드 구성은 [02-observability.md](../operations/02-observability.md) 참조.

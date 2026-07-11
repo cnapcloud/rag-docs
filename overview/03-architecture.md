@@ -1,9 +1,6 @@
 # 배포 아키텍처
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | 도입 검토자, 인프라 설계자 |
-| 기준 | 운영 검증된 Kubernetes 배포 구성 (2026-07-05) |
+도입 검토자·인프라 설계자를 위한 배포 아키텍처 문서.
 
 ---
 
@@ -44,8 +41,8 @@
 | Ollama (기본) | 클러스터 내부 또는 별도 GPU 노드에 자체 호스팅 (기본 모델 bge-m3) | 폐쇄망·데이터 반출 불가 환경, 호출 비용 없음 |
 | OpenAI | 외부 API 호출 (`text-embedding-3-small` 등) | GPU 인프라 없이 빠른 도입 — 문서 내용이 외부로 전송되는 점을 보안 정책과 확인 |
 
-컴포넌트별 요구 리소스는 [01-requirements.md](01-requirements.md), 설치 절차는
-[04-install-k8s.md](04-install-k8s.md) 참조.
+컴포넌트별 요구 리소스는 [01-requirements.md](../install/01-requirements.md), 설치 절차는
+[03-install-k8s.md](../install/03-install-k8s.md) 참조.
 
 ## 2. 핵심 데이터 흐름
 
@@ -99,7 +96,7 @@ Enterprise 배포는 질의 전에 호출자의 KB 권한으로 대상을 필터
 | Dagster (daemon·job) | Postgres / Redis / Qdrant / S3 / 임베딩 서버 | 상동 | 파이프라인 실행 |
 | rag-api / rag-admin(브라우저) | Keycloak | 443 | 토큰 검증(JWKS) / 로그인 (ENT) |
 | rag-api | SMTP | 587 등 | 초대 메일 (ENT) |
-| rag-api / Dagster | Langfuse | 3000 | 트레이스 전송 (관측 구성 시, [10-observability.md](10-observability.md)) |
+| rag-api / Dagster | Langfuse | 3000 | 트레이스 전송 (관측 구성 시, [02-observability.md](../operations/02-observability.md)) |
 
 ## 4. Core vs Enterprise
 
@@ -122,7 +119,7 @@ Enterprise 배포는 질의 전에 호출자의 KB 권한으로 대상을 필터
 | 경량 모드 (`queue_worker.enabled: true`) | API 서버 내장 워커 | Dagster 없이 단순 구성 — **평가·개발 전용** ([알려진 제약](../support/03-known-limitations.md) §1) |
 
 두 모드는 같은 Redis 큐를 소비하므로 파이프라인 동작은 동일하다. 평가는
-docker-compose([03-quickstart.md](03-quickstart.md)), 운영은 k8s + Dagster 모드가 표준이다.
+docker-compose([02-quickstart.md](../install/02-quickstart.md)), 운영은 k8s + Dagster 모드가 표준이다.
 
 ## 6. 고가용성·단일 지점
 
@@ -133,5 +130,5 @@ docker-compose([03-quickstart.md](03-quickstart.md)), 운영은 k8s + Dagster �
 | Qdrant / MinIO / Ollama(사용 시) | 단일 인스턴스 기준 — HA 구성 가이드는 로드맵 항목. OpenAI 임베딩 사용 시 임베딩 서버 운영 부담 없음 |
 | 파이프라인 | 문서 단위 격리로 부분 실패가 전체로 번지지 않음. 비정상 종료로 고착된 문서는 자동 복구(Dagster 모드) 또는 복구 API |
 
-장애 시 데이터 복원 관점은 [09-operations.md](09-operations.md) §1 참조 — 핵심은 **벡터
+장애 시 데이터 복원 관점은 [01-runbook-k8s.md](../operations/01-runbook-k8s.md) §1 참조 — 핵심은 **벡터
 (Qdrant)는 Postgres+S3만 있으면 재인덱싱으로 재생성 가능**하다는 점이다.

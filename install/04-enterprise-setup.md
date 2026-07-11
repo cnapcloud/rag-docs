@@ -1,9 +1,8 @@
 # Enterprise 구성 — SSO 및 KB 접근제어
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | Enterprise 배포 설치 담당자, IdP 관리자 |
-| 전제 | Core 설치 완료 ([03-quickstart.md](03-quickstart.md) 또는 [04-install-k8s.md](04-install-k8s.md)), OIDC IdP 운영 중 (Keycloak 기준 설명) |
+Enterprise 배포 설치 담당자, IdP 관리자를 위한 구성 가이드. Core 설치 완료
+([02-quickstart.md](02-quickstart.md) 또는 [03-install-k8s.md](03-install-k8s.md))와 운영
+중인 OIDC IdP(Keycloak 기준 설명)가 전제 조건이다.
 
 Enterprise 배포는 rag-ent-api 이미지로 API를 교체하고 IdP·SMTP 설정을 추가하면 된다.
 활성화되는 기능: OIDC 인증, KB 단위 RBAC(viewer/editor/admin/owner), 멤버십·이메일 초대,
@@ -11,7 +10,7 @@ Enterprise 배포는 rag-ent-api 이미지로 API를 교체하고 IdP·SMTP 설�
 
 이 문서는 `oidc`/`authz`/`smtp`/`security` 등 Enterprise 전용 설정만 다룬다. rag-ent-api는
 rag-api의 `Settings`(ingestion/dedup/chunking/embedding/retrieval 등)를 그대로 상속해 쓰므로,
-나머지 공통 설정값은 rag-api의 [settings-guide.md](../reference/02-settings-guide.md)를 참고한다.
+나머지 공통 설정값은 rag-api의 [02-settings-guide.md](../reference/02-settings-guide.md)를 참고한다.
 
 ---
 
@@ -46,8 +45,8 @@ Admin API용 클라이언트를 생성하지 않으면 사용자 조회가 항�
 ## 2. rag-ent-api 설정 (settings.yaml)
 
 Core와 동일한 `settings.yaml`에 아래 Enterprise 설정을 추가하면 된다 — Docker Compose는
-[03-quickstart.md](03-quickstart.md)의 `docker/settings.yaml` 파일, Kubernetes는
-[04-install-k8s.md](04-install-k8s.md) 3.1의 `settings.yaml` ConfigMap(reloader 어노테이션이
+[02-quickstart.md](02-quickstart.md)의 `docker/settings.yaml` 파일, Kubernetes는
+[03-install-k8s.md](03-install-k8s.md) 3.1의 `settings.yaml` ConfigMap(reloader 어노테이션이
 있으면 저장만으로 자동 재기동).
 
 ```yaml
@@ -140,4 +139,4 @@ POST /api/search  (Authorization: Bearer <사용자 JWT>)
 | 6 | 미가입 이메일로 멤버 초대 | 초대 메일 실제 수신 (SMTP 검증) |
 | 7 | 콘솔 로그아웃 → 재접속 | Keycloak 로그인 화면 |
 
-전체 스모크 테스트는 [07-verification.md](07-verification.md) 참조.
+전체 스모크 테스트는 [05-verification.md](05-verification.md) 참조.

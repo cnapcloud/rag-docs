@@ -1,9 +1,7 @@
 # 관측 구성 — Langfuse, Prometheus, Grafana
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | 운영·관측 담당자 |
-| 기준 | 사내 운영 환경에서 검증된 구성 (2026-07-05). 대시보드 일부는 설계 완료·구현 진행 상태로, 해당 항목은 본문에 명시 |
+운영·관측 담당자를 위한 관측 구성 가이드. 대시보드 일부는 설계는 완료되었으나 구현이
+진행 중이며, 해당 항목은 본문에 표시했다.
 
 ---
 
@@ -46,7 +44,7 @@ tracing:
 
 ### 2.2 E2E 체인 (LibreChat 연계 시)
 
-LibreChat 연계([08-integrations.md](08-integrations.md)) 환경에서는 하나의 사용자 질문이
+LibreChat 연계([06-integrations.md](../install/06-integrations.md)) 환경에서는 하나의 사용자 질문이
 다음과 같이 단일 trace로 이어진다:
 
 ```

@@ -1,9 +1,7 @@
 # 운영 Runbook
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | 운영 담당자 |
-| 범위 | 백업·복구(§1~§3), 업그레이드·롤백(§4)이 확정 절차. §4.2는 aiops 고정 태그 전환 완료 후 실제 적용 가능(2026-07-10 기준 미완). §5는 개요 수준 — 차기 갱신에서 보강 예정 |
+운영 담당자를 위한 백업·복구·업그레이드 runbook. §1~§3(백업·복구)은 확정 절차이며, §4(업그레이드·
+롤백)의 일부와 §5(일상 운영 참조)는 후속 버전에서 보강될 예정이다.
 
 ---
 
@@ -48,9 +46,8 @@ pg_dump -h <host> -U dagster -d dagster -Fc -f dagster_$(date +%Y%m%d).dump
 ```
 
 HA 구성(CloudNativePG 등)을 사용하는 경우 해당 오퍼레이터의 스케줄 백업 기능(WAL 아카이빙
-포함)을 우선 사용한다. aiops 배포에서는 이 명령이 CronJob `cnpg-postgres-backup`
-(`aiops/infra/cnpg/cluster`)으로 매일 자동 실행되며, 산출물은 MinIO `pg-backup` 버킷에
-쌓인다.
+포함)을 우선 사용한다. 위 명령은 CronJob으로 매일 자동 실행하도록 구성하고, 산출물은
+별도 버킷(예: MinIO `pg-backup`)에 보관하는 것을 권장한다.
 
 원본을 건드리지 않고 백업이 실제로 복원 가능한지 주기적으로 점검하려면 CronJob
 `cnpg-postgres-restore`(같은 위치, `suspend: true` — 수동 트리거 전용)를 쓴다. 최신 덤프를
@@ -75,9 +72,9 @@ curl -X POST http://<qdrant>:6333/snapshots
 mc mirror <alias>/rag-api <백업 대상 경로 또는 원격 alias>/rag-api-backup
 ```
 
-기존 S3 인프라를 쓰는 경우 해당 스토리지의 버전닝/복제 정책을 활용한다. aiops
-배포에서는 CronJob `minio-rag-api-mirror`(`aiops/infra/minio`)가 매일 자동 실행한다
-(`--remove` 미사용 — 원본에서 삭제된 파일도 백업엔 남겨 복구 가치를 유지).
+기존 S3 인프라를 쓰는 경우 해당 스토리지의 버전닝/복제 정책을 활용한다. 위 명령은
+CronJob으로 매일 자동 실행하도록 구성할 수 있다(`--remove` 미사용 권장 — 원본에서
+삭제된 파일도 백업엔 남겨 복구 가치를 유지).
 
 ### 2.5 권장 주기
 
@@ -152,15 +149,15 @@ git tag v1.2.0 && git push origin v1.2.0
 뒤 그 태그명으로 이미지를 빌드·푸시한다 (`:latest`도 함께 갱신됨). 태그가 CI를 통과하지
 못하면 이미지가 존재하지 않으므로, "태그가 있다 = 테스트를 통과했다"는 보장이 성립한다.
 
-### 4.2 배포 (aiops)
+### 4.2 배포
 
 각 컴포넌트의 `kustomize` 오버레이 `kustomization.yaml`의 `images:` 필드가 실제 배포 태그를
-결정한다 (예: `aiops/llm/rag-api/kustomize/overlays/<env>/kustomization.yaml`):
+결정한다:
 
 ```yaml
 images:
   - name: cnapcloud/rag-api
-    newName: ghcr.io/cnapcloud/rag-ent-api   # 레지스트리 접두사 aiops 쪽 반영 필요 (미완)
+    newName: ghcr.io/cnapcloud/rag-ent-api
     newTag: v1.2.0                            # 배포할 버전
 ```
 
@@ -174,14 +171,14 @@ images:
    기동 시 자동 적용되며 자동 롤백되지 않는다.
 2. 한 번에 하나의 버전 단계만 올린다 (여러 버전을 건너뛰지 않음).
 3. `kustomization.yaml`의 `newTag`를 목표 버전으로 변경 후 적용.
-4. [07-verification.md](07-verification.md) 스모크 테스트 수행.
+4. [05-verification.md](../install/05-verification.md) 스모크 테스트 수행.
 
 ### 4.4 롤백 절차
 
 스키마 마이그레이션이 없는 패치 업그레이드라면:
 
 1. `kustomization.yaml`의 `newTag`를 직전 버전으로 되돌리고 재적용.
-2. `/ready` 및 [07-verification.md](07-verification.md) 스모크 테스트로 정상 동작 확인.
+2. `/ready` 및 [05-verification.md](../install/05-verification.md) 스모크 테스트로 정상 동작 확인.
 
 스키마 마이그레이션이 포함된 업그레이드였다면 이미지만 되돌려서는 안 된다 — 새 스키마와 이전
 코드가 맞지 않을 수 있으므로, §3.1 절차대로 **업그레이드 직전 백업(4.3-1)에서 Postgres를

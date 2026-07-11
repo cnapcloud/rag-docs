@@ -1,10 +1,8 @@
 # 표준 설치 — Kubernetes (kustomize)
 
-| 항목 | 내용 |
-|------|------|
-| 대상 | 운영 환경 설치 담당자 (k8s 운영 경험 전제) |
-| 기준 | 사내 운영 배포에서 검증된 kustomize 구성 기준 (2026-07-05) |
-| 참고 | 배포 매니페스트의 고객 인도용 파라미터화(Helm 차트화)가 진행 중이다. 이 문서는 현행 kustomize 방식 기준이며, 패키징 개선 시 갱신된다 |
+운영 환경 설치 담당자(k8s 운영 경험 전제)를 위한 표준 설치 절차. 배포 매니페스트의 고객
+인도용 파라미터화(Helm 차트화)가 진행 중이며, 이 문서는 현재 kustomize 방식을 기준으로
+한다 — 패키징 개선 시 갱신된다.
 
 ---
 
@@ -109,7 +107,7 @@ envs:
   - ./secrets/sops/rag-api-credentials.env   # sops -e로 암호화된 dotenv
 ```
 
-Docker Compose 배포([03-quickstart.md](03-quickstart.md))는 `docker/.env`로 동일하게
+Docker Compose 배포([02-quickstart.md](02-quickstart.md))는 `docker/.env`로 동일하게
 해결한다 — `docker-compose.yml`의 모든 서비스가 `env_file: .env`로 주입받고
 `settings.yaml`에는 자격증명 키가 없다. 저장소에는 로컬 평가용 placeholder 값만
 커밋되어 있으므로, 운영 배포 시 `.env`를 실값으로 교체한다(git 추적 대상에서 제외하거나
@@ -157,7 +155,7 @@ API를 외부 노출하는 경우 동일한 방식으로 rag-api ingress를 추�
 - rag-api의 liveness(`/health`)·readiness(`/ready`) 프로브는 매니페스트에 포함되어 있다.
   readiness 실패 시 `/ready` 응답의 `checks`에서 실패 인프라를 식별한다.
 - Dagster UI에서 code location 로드와 `event_queue_sensor` 활성 상태 확인.
-- 이후 [07-verification.md](07-verification.md)의 스모크 테스트를 수행한다.
+- 이후 [05-verification.md](05-verification.md)의 스모크 테스트를 수행한다.
 
 ## 7. 운영 팁
 
@@ -165,13 +163,13 @@ API를 외부 노출하는 경우 동일한 방식으로 rag-api ingress를 추�
   [stakater/reloader](https://github.com/stakater/Reloader) 설치 시 활성화된다 (선택).
 - 커넥터의 `sync_schedule`(cron) 변경은 Dagster 재시작이 필요하다 —
   [알려진 제약](../support/03-known-limitations.md) 참조.
-- 업그레이드·롤백, 백업·복구 절차는 [09-operations.md](09-operations.md) 참조.
+- 업그레이드·롤백, 백업·복구 절차는 [01-runbook-k8s.md](../operations/01-runbook-k8s.md) 참조.
 
 ## 8. 다음 단계
 
 | 목적 | 문서 |
 |------|------|
-| SSO·KB 접근제어 활성화 | [05-ent-setup.md](05-ent-setup.md) |
-| LibreChat 등 챗 서비스 연동 (핵심 시나리오) | [08-integrations.md](08-integrations.md) |
-| 관측 구성 (Langfuse·Prometheus·Grafana) | [10-observability.md](10-observability.md) |
-| 설치 검증 | [07-verification.md](07-verification.md) |
+| SSO·KB 접근제어 활성화 | [04-enterprise-setup.md](04-enterprise-setup.md) |
+| LibreChat 등 챗 서비스 연동 (핵심 시나리오) | [06-integrations.md](06-integrations.md) |
+| 관측 구성 (Langfuse·Prometheus·Grafana) | [02-observability.md](../operations/02-observability.md) |
+| 설치 검증 | [05-verification.md](05-verification.md) |
