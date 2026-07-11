@@ -14,7 +14,7 @@ RAG 제품(rag-api / rag-ent-api / rag-admin)을 설치·운영·연동하는 �
 | [overview/](overview/) | 제품 개요, 기능 카탈로그, 아키텍처 |
 | [install/](install/) | 요구사항, Quick Start, k8s 설치, Enterprise 설정, 설치 검증, 연동 가이드 |
 | [operations/](operations/) | 백업·복구·업그레이드 runbook(k8s / docker-compose), 관측 구성 |
-| [reference/](reference/) | API 가이드, 설정(settings.yaml) 레퍼런스 |
+| [reference/](reference/) | API 가이드, 설정(settings.yaml) 레퍼런스, 환경변수(.env) 레퍼런스 |
 | [support/](support/) | 지원 정책, 릴리스·호환성, 알려진 제약 |
 
 ## 읽는 순서 (처음 접하는 경우)

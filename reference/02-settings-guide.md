@@ -4,7 +4,7 @@
 
 설정 파일 위치: `settings.yaml` (프로젝트 루트), `docker/settings.yaml` (컨테이너 배포용)
 
-모든 항목은 환경변수로 오버라이드 가능하다. Pydantic Settings 규칙을 따르며, 중첩 키는 `__`로 구분한다. 예: `QDRANT__HOST=192.168.0.184`.
+일부 자격증명 항목은 환경변수로 오버라이드 가능하다 (`S3_ACCESS_KEY`, `POSTGRES_PASSWORD` 등 — 전체 목록은 [03-environment-guide.md](03-environment-guide.md) 참고). 이 목록 밖의 설정(대부분의 비-시크릿 항목)은 환경변수 오버라이드가 없으며 `settings.yaml`을 직접 수정해야 한다.
 
 ---
 
@@ -56,7 +56,7 @@ s3:
 
 **운영 고려사항**
 
-- `secret_key`는 평문으로 파일에 저장하지 않도록 한다. 프로덕션에서는 환경변수(`S3__SECRET_KEY`)로 주입한다.
+- `secret_key`는 평문으로 파일에 저장하지 않도록 한다. 프로덕션에서는 환경변수(`S3_SECRET_KEY`)로 주입한다.
 - `insecure: false` 전환 시 MinIO가 유효한 TLS 인증서를 사용해야 한다. Let's Encrypt 또는 내부 CA 인증서를 MinIO에 적용한 후 변경한다.
 - `rag_bucket`과 `dagster_bucket`은 사전에 생성되어 있어야 한다. `minio-init` 컨테이너가 이를 담당한다.
 
@@ -92,7 +92,7 @@ postgres:
 - `pool_size`는 `queue_worker.max_workers`와 연계해 설정한다. 동시 처리 워커 수보다 약간 크게 설정하는 것이 일반적이다. 예: `max_workers: 5` → `pool_size: 7`.
 - Postgres `max_connections`가 낮으면 커넥션 풀 생성에 실패한다. 기본값(`100`) 기준으로 rag-api, Dagster 컨테이너가 각자 `pool_size`만큼 연결을 가져간다는 점을 고려한다.
 - `connect_timeout`은 네트워크 장애 감지 속도에 영향을 준다. 너무 낮으면 일시적 지연에도 연결 실패로 처리된다.
-- 비밀번호는 `POSTGRES__PASSWORD` 환경변수로 주입하는 것을 권장한다.
+- 비밀번호는 `POSTGRES_PASSWORD` 환경변수로 주입하는 것을 권장한다.
 
 ---
 
@@ -142,9 +142,9 @@ redis:
 
 **운영 고려사항**
 
-- 기본 설정은 RDB 스냅샷 모드다. Redis 비정상 종료 시 마지막 스냅샷 이후에 enqueue된 이벤트가 유실될 수 있다. 무중단 운영이 필요하면 AOF를 활성화한다 — 자세한 절차는 [operations-guide.md](operations-guide.md) 5-3 참고.
+- 기본 설정은 RDB 스냅샷 모드다. Redis 비정상 종료 시 마지막 스냅샷 이후에 enqueue된 이벤트가 유실될 수 있다. 무중단 운영이 필요하면 AOF를 활성화한다 — 자세한 절차는 [03-runbook-docker-compose.md 5-3](../operations/03-runbook-docker-compose.md#5-3-redis-aof-영속성) 참고.
 - Redis DB 인덱스를 변경하면 기존 큐 데이터가 보이지 않아 미처리 이벤트가 유실된다. 운영 중 변경은 금지한다.
-- `password`는 `REDIS__PASSWORD` 환경변수로 주입하는 것을 권장한다.
+- `password`는 `REDIS_PASSWORD` 환경변수로 주입하는 것을 권장한다.
 
 ---
 
@@ -378,7 +378,7 @@ embedding:
 - `vector_size`를 잘못 설정하면 Qdrant 컬렉션 생성 시 `ConfigError`로 기동이 실패한다. 모델 변경 시 반드시 함께 수정한다.
 - **모델 변경은 전체 재인덱싱을 수반한다.** 기존 Qdrant 컬렉션은 이전 차원으로 생성되어 있으므로 삭제 후 재생성해야 한다. KB별 `DELETE /api/kb/{id}` 후 재생성 → `POST /api/kb/{id}/reindex?force=true` 순서로 진행한다.
 - Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 엔드포인트 확인 시 `ollama: false`가 나오면 모델 로딩 중인 경우다.
-- `openai_api_key`는 `EMBEDDING__OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
+- `openai_api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
 
 ---
 
@@ -452,7 +452,7 @@ retrieval:
 
 - `enabled: true`로 변경하면 검색 응답 시간이 Jina API 왕복 시간(통상 200~500ms)만큼 늘어난다. 지연 허용치를 확인한 후 활성화한다.
 - `fallback_on_error: true`를 유지하면 Jina API가 일시 다운돼도 검색 자체는 중단되지 않는다. 다만 리랭킹 품질 없이 RRF 점수로 반환된다.
-- `api_key`는 `RETRIEVAL__RERANK__API_KEY` 환경변수로 주입한다.
+- `api_key`는 `RERANKER_API_KEY` 환경변수로 주입한다.
 - `top_n`은 `top_k`보다 작아야 의미가 있다. 리랭킹은 `top_k` 결과를 재순위 매긴 뒤 상위 `top_n`개만 반환한다.
 
 ---
@@ -534,7 +534,7 @@ tracing:
 **운영 고려사항**
 
 - `enabled: false`이면 Langfuse 서버가 없어도 정상 동작한다. Langfuse 없이 배포할 때는 반드시 `false`로 설정한다. `true`인 상태에서 서버가 없으면 추적 전송 시 연결 오류가 로그에 반복 출력될 수 있다.
-- `langfuse_secret_key`는 `TRACING__LANGFUSE_SECRET_KEY` 환경변수로 주입한다.
+- `langfuse_secret_key`는 `TRACING_LANGFUSE_SECRET_KEY` 환경변수로 주입한다.
 - `service_name`은 동일 Langfuse 프로젝트에 여러 서비스가 연결될 때 trace를 구분하는 레이블이다.
 
 ---
@@ -559,28 +559,42 @@ logging:
 
 - `DEBUG`는 로그 볼륨이 크게 늘어난다. 트러블슈팅 이후에는 반드시 `INFO`로 되돌린다.
 - `WARNING` 이상의 로그는 반드시 원인을 확인한다. `WARNING`은 MinIO delete 실패처럼 의도된 silent-fail 케이스에도 출력된다.
-- 로그 레벨은 환경변수(`LOGGING__LEVEL=DEBUG`)로도 변경 가능하므로 재배포 없이 런타임 조정이 필요한 경우 활용한다. 단, 재시작 없이 반영되는 것은 아니며 환경변수 주입 후 컨테이너 재시작이 필요하다.
+- 로그 레벨은 환경변수 오버라이드가 없다. `settings.yaml`의 `logging.level`을 직접 수정하고 컨테이너를 재시작해야 반영된다.
 
 ---
 
 ## 부록: 환경변수 오버라이드 규칙
 
-Pydantic Settings는 환경변수를 자동으로 인식한다. 중첩 설정은 `__`로 구분한다.
+실제로 어떤 변수에 어떤 자격증명 값을 넣어야 하는지는
+[03-environment-guide.md](03-environment-guide.md)를 참고한다. 여기서는 오버라이드
+문법만 다룬다.
+
+`Settings.from_yaml()`이 자동으로 모든 키를 환경변수와 매칭하는 것이 아니다 — 코드에
+하드코딩된 아래 변수 목록만 읽는다(자격증명·시크릿 성격의 항목으로 한정). 목록 밖의 설정은
+환경변수로 오버라이드되지 않으며 `settings.yaml`을 직접 수정해야 한다.
 
 ```bash
-# 단순 키
-LOGGING__LEVEL=DEBUG
+OPENAI_API_KEY=sk-...
+S3_ACCESS_KEY=minio-access
+S3_SECRET_KEY=minio-secret
+REDIS_PASSWORD=secure-password
+POSTGRES_USER=rag-api
+POSTGRES_PASSWORD=prod-password
+RERANKER_API_KEY=jina-...
+TRACING_LANGFUSE_PUBLIC_KEY=pk-lf-...
+TRACING_LANGFUSE_SECRET_KEY=sk-lf-...
+SERVER_PRODUCTION=true
+SERVER_WORKERS=4
+```
 
-# 중첩 키
-EMBEDDING__PROVIDER=openai
-EMBEDDING__OPENAI_API_KEY=sk-...
-RETRIEVAL__RERANK__ENABLED=true
-POSTGRES__PASSWORD=prod-password
+Enterprise 배포(rag-ent-api)는 다음 4개가 추가된다 — 전체 설명은
+[03-environment-guide.md](03-environment-guide.md) 5절 참고.
 
-# 인프라 연결
-QDRANT__HOST=qdrant.internal
-REDIS__PASSWORD=secure-password
-S3__SECRET_KEY=minio-secret
+```bash
+OIDC_ADMIN_CLIENT_ID=...
+OIDC_ADMIN_CLIENT_SECRET=...
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
 ```
 
 환경변수는 `settings.yaml` 값보다 우선 적용된다.
