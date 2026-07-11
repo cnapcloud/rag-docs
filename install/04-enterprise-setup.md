@@ -11,7 +11,7 @@ Enterprise 배포는 rag-ent-api 이미지로 API를 교체하고 IdP·SMTP 설�
 
 이 문서는 `oidc`/`authz`/`smtp`/`security` 등 Enterprise 전용 설정만 다룬다. rag-ent-api는
 rag-api의 `Settings`(ingestion/dedup/chunking/embedding/retrieval 등)를 그대로 상속해 쓰므로,
-나머지 공통 설정값은 rag-api의 [settings-guide.md](../reference/02-settings-reference.md)를 참고한다.
+나머지 공통 설정값은 rag-api의 [settings-guide.md](../reference/02-settings-guide.md)를 참고한다.
 
 ---
 
