@@ -97,7 +97,7 @@ rate_limit:                            # 사용자별 요청 제한 — 인증�
 ## 3. 관리 콘솔 ENT 모드 활성화
 
 콘솔은 단일 빌드로 배포 시 환경값만으로 모드가 결정된다. Kubernetes는
-`k8s/manifests/rag/rag-api/kustomize/overlays/dev/configmaps/admin-ui.yaml`(admin-ui
+`k8s/manifests/llm/rag-api/kustomize/overlays/dev/configmaps/admin-ui.yaml`(admin-ui
 ConfigMap), Docker Compose는 `public/env.js`에 OIDC 값을 채우면 ENT 모드가 켜진다.
 
 ```

@@ -19,7 +19,7 @@ k8s/manifests/
     mailpit                       # SMTP 평가/테스트용 — 운영은 고객 SMTP로 교체 (Enterprise 구성 시)
     reloader                      # ConfigMap/Secret 변경 시 Deployment 자동 재기동
 
-  rag/                            # 네임스페이스: llm
+  llm/                            # 네임스페이스: llm
     qdrant                       # 벡터 DB (Helm 기반)
     dagster                      # webserver / daemon / user-code (Helm 기반)
     rag-api                      # rag-api Deployment+Service, rag-admin Deployment+Service+Ingress 포함
@@ -29,7 +29,7 @@ k8s/manifests/
                                   # (선택 — 임베딩 서버가 클러스터 밖에 있을 때만 배포)
 
 외부 준비 (매니페스트에 포함되지 않음):
-  임베딩 서버    Ollama GPU 노드 (클러스터 외부면 rag/ollama로 연결 — §2의 5번 항목 참조)
+  임베딩 서버    Ollama GPU 노드 (클러스터 외부면 llm/ollama로 연결 — §2의 5번 항목 참조)
                 또는 OpenAI API 사용 (자체 호스팅 불필요 — 외부 전송 보안 정책 확인)
   Keycloak      Enterprise 구성 시 (04-enterprise-setup.md)
   운영용 SMTP    Enterprise 구성 시 (mailpit은 평가/테스트 전용)
@@ -85,9 +85,9 @@ k8s/manifests/
    바꾸면 된다(예시는 5절 참조). rag-api 자체는 기본적으로 Ingress가 없으므로, API를
    외부로 노출하려면 직접 추가한다(§5 하단 참조).
 5. **임베딩 서버(Ollama) 연결** — OpenAI를 쓰지 않고 클러스터 외부 Ollama GPU 노드를
-   쓰는 경우에만 해당. `rag/ollama`가 클러스터 안에서 `ollama.llm.svc.cluster.local:11434`로
+   쓰는 경우에만 해당. `llm/ollama`가 클러스터 안에서 `ollama.llm.svc.cluster.local:11434`로
    접근할 수 있도록 Service+EndpointSlice를 새로 구성해준다 — 배포 전에
-   `rag/ollama/kustomize/base/resources/endpoints.yaml`의 `addresses`(현재는 placeholder
+   `llm/ollama/kustomize/base/resources/endpoints.yaml`의 `addresses`(현재는 placeholder
    IP)를 실제 Ollama 호스트 IP로 바꿔둔다(배포는 §4에서 진행). Ollama가 클러스터 안에
    직접 떠 있다면(자체 Deployment) 이 컴포넌트는 배포하지 않고 해당 Service를 그대로 쓴다.
 
@@ -110,7 +110,7 @@ qdrant:    { host: qdrant.llm.svc.cluster.local, port: 6333 }
 s3:        { endpoint: http://minio.infra.svc:9000, rag_bucket: rag-api, ... }
 dagster:   { endpoint: http://dagster-webserver.llm.svc.cluster.local:3000 }
 embedding: { provider: ollama, model: bge-m3, ollama_url: http://ollama.llm.svc.cluster.local:11434 }
-           # ollama_url은 §2의 5번 항목에서 구성한 rag/ollama Service 주소 (클러스터 내부 Ollama라면 해당 Service 주소로)
+           # ollama_url은 §2의 5번 항목에서 구성한 llm/ollama Service 주소 (클러스터 내부 Ollama라면 해당 Service 주소로)
            # 또는 { provider: openai, openai_model: text-embedding-3-small, openai_api_key: <Secret 주입> }
            # 주의: vector_size가 모델과 일치해야 함 (bge-m3=1024, text-embedding-3-small=1536).
            #       provider·모델 변경 시 기존 KB는 전체 재인덱싱 필요
@@ -147,7 +147,7 @@ Docker Compose 배포([02-quickstart.md](02-quickstart.md))는 `docker/.env`로 
 # 각 컴포넌트 디렉터리에서 (기존 인프라 재사용 시 infra/ 단계는 생략)
 # 1) infra:  minio(cnpg 백업 대상이라 먼저) → cnpg/operator → cnpg/cluster → redis-ha
 #            (mailpit, reloader는 선택)
-# 2) rag:    qdrant → ollama(클러스터 외부 임베딩 서버 쓸 때만, §2 5번 항목 참조) → dagster → rag-api
+# 2) llm:    qdrant → ollama(클러스터 외부 임베딩 서버 쓸 때만, §2 5번 항목 참조) → dagster → rag-api
 #            (rag-admin은 rag-api에 포함)
 #            임베딩 서버가 먼저 준비돼 있어야 한다 — /ready가 임베딩 연결까지 확인한다
 make preview     # 생성될 매니페스트 확인
@@ -157,7 +157,7 @@ make apply       # server-side apply
 
 ## 5. Ingress 예시
 
-`rag-admin` Ingress는 `rag/rag-api/kustomize/base/resources/admin/ingress.yaml`에 이미
+`rag-admin` Ingress는 `llm/rag-api/kustomize/base/resources/admin/ingress.yaml`에 이미
 정의되어 있다 — 실제 내용은 다음과 같다.
 
 ```yaml
@@ -182,7 +182,7 @@ spec:
       hosts: [rag-admin.<도메인>]
 ```
 
-dagster webserver UI의 Ingress도 Helm values(`rag/dagster/kustomize/overlays/dev/helm/
+dagster webserver UI의 Ingress도 Helm values(`llm/dagster/kustomize/overlays/dev/helm/
 values-dev.yaml`의 `ingress` 섹션)에 이미 켜져 있다 — `ingress.dagsterWebserver.host` 값만
 실제 도메인으로 바꾸면 된다. rag-api 자체는 기본 Ingress가 없으므로, API를 외부로
 노출하는 경우 위와 동일한 방식(annotations 포함)으로 직접 추가한다.
