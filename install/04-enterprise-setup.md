@@ -69,6 +69,26 @@ smtp:                                   # 초대 메일 발송
 
 security:
   fernet_key: "<Fernet 키>"             # 커넥터 토큰 암호화용 — Secret으로 주입
+
+rate_limit:                            # 사용자별 요청 제한 — 인증된 사용자 식별이
+  enabled: true                        # 전제이므로 Enterprise 전용
+  rules:
+    - name: search
+      paths: ["/api/search"]
+      limit: "10/second"
+    - name: upload
+      paths: ["/api/kb/*/docs/upload", "/api/kb/*/docs/upload/batch"]
+      limit: "30/minute"
+      weights:
+        "/api/kb/*/docs/upload/batch": 10   # batch 호출 1건을 업로드 10건으로 취급
+    - name: reindex
+      paths: ["/api/kb/*/reindex", "/api/kb/*/docs/*/reindex"]
+      limit: "10/minute"
+    - name: mcp
+      paths: ["/mcp"]
+      limit: "300/minute"       # MCP 툴 전체가 하나의 버킷 공유 (body 파싱 없음)
+  default: "120/minute"         # 규칙에 매칭되지 않는 경로의 사용자별 기본 제한
+  exempt_paths: ["/health", "/ready", "/docs", "/redoc", "/openapi.json"]
 ```
 
 **SMTP는 반드시 실 발송 가능한 서버를 사용한다.** 평가 환경의 mailpit은 메일을 가두는
@@ -76,8 +96,9 @@ security:
 
 ## 3. 관리 콘솔 ENT 모드 활성화
 
-콘솔은 단일 빌드로 배포 시 환경값만으로 모드가 결정된다. admin-ui ConfigMap(또는
-`public/env.js`)에 OIDC 값을 채우면 ENT 모드가 켜진다.
+콘솔은 단일 빌드로 배포 시 환경값만으로 모드가 결정된다. Kubernetes는
+`k8s/manifests/rag/rag-api/kustomize/overlays/dev/configmaps/admin-ui.yaml`(admin-ui
+ConfigMap), Docker Compose는 `public/env.js`에 OIDC 값을 채우면 ENT 모드가 켜진다.
 
 ```
 API_URL=<rag-ent-api 주소>

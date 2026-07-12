@@ -1,37 +1,45 @@
 # 배포 아키텍처
 
-도입 검토자·인프라 설계자를 위한 배포 아키텍처 문서.
+도입 검토자·인프라 설계자를 위한 배포 아키텍처 문서. 전체 구성도, 핵심 데이터 흐름
+(인제스트·검색·커넥터 동기화), 네트워크 정책 설계용 통신 매트릭스, Core/Enterprise
+차이, 실행 모드, 고가용성·장애 복구 관점을 다룬다 — 설치 절차 자체가 아니라 설계
+판단에 필요한 배경 정보 제공이 목적이며, 실제 설치는 [03-install-k8s.md](../install/03-install-k8s.md)를 따른다.
 
 ---
 
 ## 1. 전체 구성 (Kubernetes 기준)
 
 ```
-                        [사용자 / 연동 앱 / MCP 클라이언트]
-                                      │ HTTPS
-                              nginx ingress (TLS)
-                       ┌──────────────┴──────────────┐
-                       ↓                             ↓
-              rag-admin (관리 콘솔)          rag-api (API + MCP)
-                 Deployment                    Deployment
-                       │ API 호출                     │
-                       └──────────────→───────────────┤
-                                                      │
-   제품 네임스페이스      ┌────────────────────────────────┼────────────────┐
-                      │                                ↓                │
-                      │   Dagster ── webserver / daemon / user-code    │
-                      │      │  (인제스트 파이프라인 실행·스케줄)            │
-                      │      ↓                                          │
-                      │   qdrant (벡터 DB, StatefulSet+PVC)             │
-                      └─────────────────────────────────────────────────┘
-                                          │
-   공유 인프라 (기존 재사용 또는 별도 설치)    ↓
-   ┌──────────────────────────────────────────────────────────────────┐
-   │  PostgreSQL (HA)   Redis (HA)   S3/MinIO   임베딩 서버             │
-   │  메타데이터·권한      이벤트 큐      원본 문서    Ollama(GPU) 또는      │
-   │                                            OpenAI API(외부)      │
-   └──────────────────────────────────────────────────────────────────┘
-   Enterprise 추가:  Keycloak (OIDC IdP)   SMTP (초대 메일)
+                     [User / Integrated App / MCP Client]
+                                    |
+                                  HTTPS
+                                    v
+                     nginx ingress (TLS)
+                     +------------+-------------+
+                     v                          v
+            rag-admin (console)         rag-api (API + MCP)
+                     |                          |
+                     |  API call                |
+                     +--------------------------+
+                                    |
+                                    v
+               namespace: llm
+               +------------------------------------------+
+               | dagster (webserver / daemon / user-code) |
+               |   |                                      |
+               |   v  run & schedule ingest pipeline      |
+               | qdrant (vector DB, Helm-based)           |
+               +------------------------------------------+
+                                    |
+                                    v
+    namespace: infra (reuse existing or install separately)
+   +----------------------------------------------------------------+
+   | PostgreSQL(CNPG)   Redis(HA)     MinIO(S3)    embedding server |
+   | metadata/authz     event queue   raw docs     Ollama(GPU) or   |
+   |                                                OpenAI API(ext) |
+   +----------------------------------------------------------------+
+
+Enterprise add-on:  Keycloak (OIDC IdP)   SMTP (invite email)
 ```
 
 임베딩은 두 프로바이더 중 선택한다 (`embedding.provider`):
