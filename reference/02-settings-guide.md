@@ -156,20 +156,29 @@ redis:
 ingestion:
   max_file_size_mb: 10
   min_content_chars: 200
-  html_favor_precision: true
+  html_extraction_mode: "recall"
 ```
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
 | `max_file_size_mb` | `10` | 파일 업로드 최대 크기(MB). 초과 시 422 반환 |
 | `min_content_chars` | `200` | 웹 커넥터 전용. trafilatura 본문 추출 결과가 이 값 미만인 페이지는 저장 제외 |
-| `html_favor_precision` | `true` | `pipeline/ops/parse.py`의 `HTMLCleanReader`(`.html`/`.htm` 파싱)가 trafilatura로 본문을 추출할 때 정밀도(precision) 우선 모드 사용 여부. `true`면 본문인지 애매한 블록(사이드바 경계 등)을 제외해 dedup stage 1(SimHash) 안정성을 높이지만 본문 일부가 드물게 손실될 수 있다. `false`면 재현율(recall) 우선으로 전환되어 애매한 블록도 포함한다 |
+| `html_extraction_mode` | `"recall"` | `pipeline/ops/parse.py`의 `HTMLCleanReader`(`.html`/`.htm` 파싱)가 trafilatura로 본문을 추출할 때 애매한 블록(사이드바 경계 등)을 얼마나 적극적으로 포함시킬지 결정. `"precision"`/`"recall"`/`"balanced"` 중 하나(US-39, 2026-07-13) |
+
+**`html_extraction_mode` 값별 동작**
+
+| 값 | 판단 기준 | 트레이드오프 |
+|----|-----------|--------------|
+| `"precision"` | 애매하면 제외 | 본문 일부가 boilerplate로 오판되어 손실될 수 있음 — 위키형 페이지(namu.wiki 등)에서 본문 90%+ 손실 실측됨 |
+| `"balanced"` | 표준 임계치, 모드 전용 로직 미적용 | precision/recall 중간값. 검증된 운영 데이터는 아직 없음 |
+| `"recall"` (기본값) | 애매하면 포함 | 라이선스 푸터 등 짧은 boilerplate가 본문에 섞여 들어올 수 있음(실측 확인) — 그러나 본문 손실보다는 검색 가능성을 우선한 선택 |
 
 **운영 고려사항**
 
 - `max_file_size_mb`를 크게 올리면 파싱·임베딩 시간이 선형 이상으로 늘어날 수 있다. 대용량 PDF(100MB+)는 LlamaIndex 파서가 메모리를 수백 MB 사용한다. 실제 필요 크기를 기준으로 보수적으로 설정한다.
 - `min_content_chars`는 크롤 대상 사이트의 특성에 따라 조정한다. 짧은 페이지(FAQ, 카드형 UI)가 많은 사이트에서는 너무 높게 설정하면 유효한 문서가 걸러질 수 있다. 수집 결과를 확인한 후 조정한다.
-- `html_favor_precision`은 기본값(`true`)을 유지하는 것을 권장한다. HTML 문서에서 본문이 자주 잘려나간다는 신호(청크 수가 비정상적으로 적음, 특정 사이트의 문서가 계속 dedup 오탐됨 등)가 관찰되면 `false`로 전환해 재검증한다 (`docs/internal/design/html-extraction.md` 3.2, 6절 오픈 이슈 참고).
+- `html_extraction_mode`는 기본값(`"recall"`)을 유지하는 것을 권장한다. 이전 기본값은 `"precision"`이었으나, 위키형 페이지에서 본문 대부분이 boilerplate로 오판되어 검색이 아예 안 되는 사례가 실측되어 `"recall"`로 전환했다(`docs/internal/design/html-extraction.md` 3.2 참고). 반대로 특정 사이트의 문서가 dedup에서 계속 오탐(동일 문서인데 unique로 판정)되거나, 라이선스 푸터/네비게이션 문구가 검색 결과에 자주 섞여 나온다는 신호가 관찰되면 `"precision"` 또는 `"balanced"`로 전환해 재검증한다.
+- 이미 `"precision"` 모드로 인제스트된 기존 HTML 문서는 설정을 바꿔도 자동으로 재추출되지 않는다 — 재인제스트(reindex)가 필요하다.
 
 ---
 
