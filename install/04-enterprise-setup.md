@@ -94,6 +94,34 @@ rate_limit:                            # 사용자별 요청 제한 — 인증�
 **SMTP는 반드시 실 발송 가능한 서버를 사용한다.** 평가 환경의 mailpit은 메일을 가두는
 개발 도구로, 운영에서 사용하면 초대 메일이 사용자에게 도달하지 않는다.
 
+### 2.1 이미지 캡셔닝 / PDF OCR 폴백 (opt-in)
+
+위 섹션들과 달리 `ingestion`은 rag-api 기본 `Settings`에 이미 있는 섹션이지만,
+`image_captioning`/`pdf_ocr_fallback` 두 하위 키는 rag-ent-api가 확장한 **Enterprise 전용**
+필드다. 둘 다 기본값이 `false`(opt-in)이며, 켜려면 파서 확장 레지스트리(`parser_plugins`)로
+rag-ent-api 비공개 패키지를 등록해야 동작한다.
+
+```yaml
+ingestion:
+  parser_plugins:
+    - "rag_ent.pipeline.plugins.image_ocr:register"
+
+  image_captioning:
+    enabled: true
+    model: "qwen2.5vl:3b"        # provider(§11)에 맞는 모델 — ollama: qwen2.5vl:3b, openai: gpt-4o-mini
+    max_images_per_doc: 20
+    max_concurrent_tasks: 5
+
+  pdf_ocr_fallback:
+    enabled: true
+    engine: rapidocr
+    language: korean
+```
+
+전체 필드 설명(기본값, 각 키의 의미)과 `provider` 공유 관계는
+[reference/02-settings-guide.md §6](../reference/02-settings-guide.md#6-ingestion)의
+"(rag-ent-api 전용)" 절을 참고한다 — 여기서는 반복하지 않는다.
+
 ## 3. 관리 콘솔 ENT 모드 활성화
 
 콘솔은 단일 빌드로 배포 시 환경값만으로 모드가 결정된다. Kubernetes는
