@@ -6,6 +6,13 @@
 
 일부 자격증명 항목은 환경변수로 오버라이드 가능하다 (`S3_ACCESS_KEY`, `POSTGRES_PASSWORD` 등 — 전체 목록은 [03-environment-guide.md](03-environment-guide.md) 참고). 이 목록 밖의 설정(대부분의 비-시크릿 항목)은 환경변수 오버라이드가 없으며 `settings.yaml`을 직접 수정해야 한다.
 
+이 문서는 rag-api 기본 `Settings`를 다룬다 — rag-ent-api도 이 섹션들을 그대로 상속해서 쓴다.
+rag-ent-api가 최상위에 새로 추가하는 `oidc`/`authz`/`smtp`/`rate_limit`/`security` 섹션은 여기
+없다 — Enterprise 전용이라 [install/04-enterprise-setup.md](../install/04-enterprise-setup.md)
+2절에서 다룬다. 반대로 `ingestion.image_captioning`/`ingestion.pdf_ocr_fallback`처럼 **기존
+rag-api 섹션 안에 중첩된** ent 전용 필드는 예외적으로 해당 섹션(§6) 안에서 "(rag-ent-api 전용)"
+표시와 함께 바로 설명한다.
+
 ---
 
 ## 1. dagster
