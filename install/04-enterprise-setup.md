@@ -102,8 +102,12 @@ rate_limit:                            # 사용자별 요청 제한 — 인증�
 
 위 섹션들과 달리 `ingestion`은 rag-api 기본 `Settings`에 이미 있는 섹션이지만,
 `image_captioning`/`pdf_ocr_fallback` 두 하위 키는 rag-ent-api가 확장한 **Enterprise 전용**
-필드다. 둘 다 기본값이 `false`(opt-in)이며, 켜려면 파서 확장 레지스트리(`parser_plugins`)로
-rag-ent-api 비공개 패키지를 등록해야 동작한다.
+필드다 — rag-api 기본 `Settings`에는 존재하지 않으며, rag-ent-api가 자신의 확장 `Settings`
+서브클래스(`IngestionSettings`)에 필드를 추가해서만 존재한다. 실제 동작은
+`ingestion.parser_plugins`(rag-api의 파서 확장 레지스트리 — [reference/02-settings-guide.md
+§6](../reference/02-settings-guide.md#6-ingestion) 참고)로 등록되는 rag-ent-api 비공개
+패키지(`rag_ent.pipeline.plugins.image_ocr`)가 구현한다 — rag-api 저장소에는 이 기능의 코드나
+설계 문서가 없다. rag-api 단독 배포에서는 이 두 섹션을 설정 파일에 넣어도 무시된다.
 
 ```yaml
 ingestion:
@@ -112,19 +116,44 @@ ingestion:
 
   image_captioning:
     enabled: true
-    model: "qwen2.5vl:3b"        # provider(§11)에 맞는 모델 — ollama: qwen2.5vl:3b, openai: gpt-4o-mini
+    model: "qwen2.5vl:3b"      # provider(reference/02-settings-guide.md §11)에 맞는 모델명
+                               # ollama: qwen2.5vl:3b / openai: gpt-4o-mini
+    temperature: 0.1
     max_images_per_doc: 20
     max_concurrent_tasks: 5
+    default_language: ko
 
   pdf_ocr_fallback:
     enabled: true
     engine: rapidocr
     language: korean
+    min_chars_per_page: 50
 ```
 
-전체 필드 설명(기본값, 각 키의 의미)과 `provider` 공유 관계는
-[reference/02-settings-guide.md §6](../reference/02-settings-guide.md#6-ingestion)의
-"(rag-ent-api 전용)" 절을 참고한다 — 여기서는 반복하지 않는다.
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| **image_captioning** | | |
+| `image_captioning.enabled` | `false` | 이미지 캡셔닝 활성화 여부 (opt-in) |
+| `image_captioning.model` | `"qwen2.5vl:3b"` | 비전 모델 이름. `provider.name`(reference/02-settings-guide.md §11)에 맞는 모델을 지정 — ollama: `qwen2.5vl:3b`, openai: `gpt-4o-mini` 등 |
+| `image_captioning.temperature` | `0.1` | 낮게 고정 — 캡션 재현성 확보 목적 |
+| `image_captioning.max_images_per_doc` | `20` | 문서당 캡셔닝할 최대 이미지 수. 대용량 스캔 PDF/이미지 다수 문서의 지연 상한 |
+| `image_captioning.max_concurrent_tasks` | `5` | 이미지별 VLM 호출 동시성(asyncio.Semaphore) |
+| `image_captioning.default_language` | `"ko"` | 문서 텍스트가 없는 경우 캡션 언어(ISO 639-1) |
+| **pdf_ocr_fallback** | | |
+| `pdf_ocr_fallback.enabled` | `false` | PDF OCR 폴백 활성화 여부 (opt-in) |
+| `pdf_ocr_fallback.engine` | `"rapidocr"` | OCR 엔진. `rapidocr`(onnxruntime 기반, PaddleOCR 모델을 ONNX로 변환해 재사용) |
+| `pdf_ocr_fallback.language` | `"korean"` | RapidOCR `Rec.lang_type` 값 |
+| `pdf_ocr_fallback.min_chars_per_page` | `50` | 페이지 평균 글자 수가 이 값 미만이면 OCR 경로로 자동 전환 |
+
+**운영 고려사항**
+
+- `image_captioning`은 `provider.name`(reference/02-settings-guide.md §11)을 embedding과
+  **공유**한다 — ollama/openai 어느 쪽을 쓰든 embedding과 동일한 provider 블록
+  (`provider.ollama_url`/`provider.openai_api_key`)을 재사용하고, 모델명만
+  `image_captioning.model`로 별도 지정한다.
+- `pdf_ocr_fallback`은 provider와 무관한 순수 로컬 OCR이다 — 외부 API 호출이 없다.
+- 두 기능 모두 기본값은 `false`(opt-in)다. 활성화하면 문서당 처리 시간이 늘어난다 — 대량
+  스캔 PDF가 많은 배포에서는 `max_images_per_doc`/`max_concurrent_tasks`를 보수적으로 설정한다.
 
 ## 3. 관리 콘솔 ENT 모드 활성화
 
