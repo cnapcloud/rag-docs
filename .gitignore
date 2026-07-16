@@ -1,0 +1,6 @@
+.DS_Store
+demo/.env.local
+demo/recordings/
+demo/__pycache__/
+demo/.venv/
+demo/.ruff_cache/
