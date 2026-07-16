@@ -1,4 +1,4 @@
-# Enterprise 구성 — SSO 및 KB 접근제어
+# Enterprise 구성 — SSO, 접근제어, 확장 기능
 
 Enterprise 배포 설치 담당자, IdP 관리자를 위한 구성 가이드. Core 설치 완료
 ([02-quickstart.md](02-quickstart.md) 또는 [03-install-k8s.md](03-install-k8s.md))와 운영
@@ -6,9 +6,13 @@ Enterprise 배포 설치 담당자, IdP 관리자를 위한 구성 가이드. Co
 
 Enterprise 배포는 rag-ent-api 이미지로 API를 교체하고 IdP·SMTP 설정을 추가하면 된다.
 활성화되는 기능: OIDC 인증, KB 단위 RBAC(viewer/editor/admin/owner), 멤버십·이메일 초대,
-소유권 관리, 권한 필터가 적용된 검색·MCP. 상세 동작은 [api-guide.md](../reference/01-api-guide.md) 참조.
+소유권 관리, 권한 필터가 적용된 검색·MCP, 사용자별 요청 속도 제한(rate limit), 커넥터
+시크릿 암호화, 그리고 opt-in 인제스트 확장(이미지 캡셔닝, PDF OCR 폴백). 상세 동작은
+[api-guide.md](../reference/01-api-guide.md) 참조.
 
-이 문서는 `oidc`/`authz`/`smtp`/`security` 등 Enterprise 전용 설정만 다룬다. rag-ent-api는
+이 문서는 rag-ent-api가 새로 추가하는 최상위 섹션(`oidc`/`authz`/`smtp`/`rate_limit`/
+`security`)과, 기존 rag-api 섹션에 중첩된 Enterprise 전용 확장 필드
+(`ingestion.image_captioning`/`ingestion.pdf_ocr_fallback`, §2.1)를 다룬다. rag-ent-api는
 rag-api의 `Settings`(ingestion/dedup/chunking/embedding/retrieval 등)를 그대로 상속해 쓰므로,
 나머지 공통 설정값은 rag-api의 [02-settings-guide.md](../reference/02-settings-guide.md)를 참고한다.
 
