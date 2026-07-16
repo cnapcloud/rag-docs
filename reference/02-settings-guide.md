@@ -157,6 +157,7 @@ ingestion:
   max_file_size_mb: 10
   min_content_chars: 200
   html_extraction_policy: "lenient"
+  parser_plugins: []
 ```
 
 | 키 | 기본값 | 설명 |
@@ -164,6 +165,7 @@ ingestion:
 | `max_file_size_mb` | `10` | 파일 업로드 최대 크기(MB). 초과 시 422 반환 |
 | `min_content_chars` | `200` | 웹 커넥터 전용. trafilatura 본문 추출 결과가 이 값 미만인 페이지는 저장 제외 |
 | `html_extraction_policy` | `"lenient"` | `pipeline/ops/parse.py`의 `HTMLCleanReader`(`.html`/`.htm` 파싱)가 trafilatura로 본문을 추출할 때 애매한 블록(사이드바 경계 등)을 얼마나 적극적으로 포함시킬지 결정. `"strict"`/`"lenient"`/`"balanced"` 중 하나(US-39, 2026-07-13) |
+| `parser_plugins` | `[]` | 파서 확장 레지스트리에 로드할 `"module.path:register_func"` 문자열 목록. 목록에 나열된 순서대로 import되어 각 `register()`가 실행되며, 기본 파서(PDF/DOCX/MD/TXT/HWP/HTML 등)를 교체하거나 새 확장자를 추가할 수 있다(2026-07-15, `docs/internal/design/parser-registry.md` 참고) |
 
 **`html_extraction_policy` 값별 동작**
 
@@ -179,6 +181,84 @@ ingestion:
 - `min_content_chars`는 크롤 대상 사이트의 특성에 따라 조정한다. 짧은 페이지(FAQ, 카드형 UI)가 많은 사이트에서는 너무 높게 설정하면 유효한 문서가 걸러질 수 있다. 수집 결과를 확인한 후 조정한다.
 - `html_extraction_policy`는 기본값(`"lenient"`)을 유지하는 것을 권장한다. 이전 기본값은 `"strict"`였으나, 위키형 페이지에서 본문 대부분이 boilerplate로 오판되어 검색이 아예 안 되는 사례가 실측되어 `"lenient"`로 전환했다(`docs/internal/design/html-extraction.md` 3.2 참고). 반대로 특정 사이트의 문서가 dedup에서 계속 오탐(동일 문서인데 unique로 판정)되거나, 라이선스 푸터/네비게이션 문구가 검색 결과에 자주 섞여 나온다는 신호가 관찰되면 `"strict"` 또는 `"balanced"`로 전환해 재검증한다.
 - 이미 `"strict"` 정책으로 인제스트된 기존 HTML 문서는 설정을 바꿔도 자동으로 재추출되지 않는다 — 재인제스트(reindex)가 필요하다.
+
+**`parser_plugins`**
+
+`pipeline/step/parse.py`의 확장자 -> 리더 매핑은 정적 상수가 아니라 등록 기반 레지스트리다.
+`parser_plugins`에는 "무엇을 로드할지"만 나열하며, 각 항목이 실제로 무엇을 등록/해제하는지는
+그 모듈의 `register()` 코드에 있다 — 설정은 스위치 역할만 한다. 저장소 밖(비공개 패키지)의
+모듈도 dotted path로 그대로 참조할 수 있다.
+
+```yaml
+ingestion:
+  parser_plugins:
+    - "ent_pkg.parsers.captioning:register"   # 1) 기본 등록 이후 실행 — .pdf 리더 교체 등
+    - "ent_pkg.parsers.pptx:register"         # 2) 1)과 무관하게 별도 확장자 등록
+```
+
+**운영 고려사항 (`parser_plugins`)**
+
+- 목록 순서가 곧 로드 순서다 — 기본 파서가 먼저 등록된 뒤 목록이 순서대로 실행되므로, 뒤 항목이
+  앞 항목·기본 파서를 덮어쓸 수 있다.
+- 각 항목은 프로세스 최초 `parse()` 호출 시 지연 로드된다(애플리케이션 startup 훅에 묶지 않음) —
+  FastAPI/Dagster op/큐 워커/CLI 등 `parse()` 진입점이 여러 개이기 때문.
+- rag-ent-api는 이 메커니즘으로 이미지 캡셔닝/PDF OCR 폴백을 **비공개 패키지**로 등록한다 —
+  아래 "(rag-ent-api 전용)" 절 참고.
+
+### (rag-ent-api 전용) `ingestion.image_captioning` / `ingestion.pdf_ocr_fallback`
+
+아래 두 키는 **rag-api 기본 `Settings`에는 존재하지 않는다.** rag-ent-api가 자신의 확장
+`Settings` 서브클래스(`IngestionSettings`)에 필드를 추가해서만 존재하며, 실제 동작은 위
+`parser_plugins`로 등록되는 rag-ent-api 비공개 패키지(`rag_ent.pipeline.plugins.image_ocr`)가
+구현한다 — rag-api 저장소에는 이 기능의 코드나 설계 문서가 없다(2026-07-16, 이미지
+캡셔닝/PDF OCR 폴백 설계는 US-40 이후 rag-ent-api 쪽 비공개 구현으로 정리됨). rag-api 단독
+배포에서는 이 두 섹션을 설정 파일에 넣어도 무시된다.
+
+```yaml
+# rag-ent-api 전용 (docker/settings.yaml 예시)
+ingestion:
+  parser_plugins:
+    - "rag_ent.pipeline.plugins.image_ocr:register"
+
+  image_captioning:
+    enabled: true
+    model: "qwen2.5vl:3b"      # provider에 맞는 모델명 (ollama: qwen2.5vl:3b / openai: gpt-4o-mini)
+    temperature: 0.1
+    max_images_per_doc: 20
+    max_concurrent_tasks: 5
+    default_language: ko
+
+  pdf_ocr_fallback:
+    enabled: true
+    engine: rapidocr
+    language: korean
+    min_chars_per_page: 50
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| **image_captioning** | | |
+| `image_captioning.enabled` | `false` | 이미지 캡셔닝 활성화 여부 (opt-in) |
+| `image_captioning.model` | `"qwen2.5vl:3b"` | 비전 모델 이름. `provider.name`(§11)에 맞는 모델을 지정 — ollama: `qwen2.5vl:3b`, openai: `gpt-4o-mini` 등 |
+| `image_captioning.temperature` | `0.1` | 낮게 고정 — 캡션 재현성 확보 목적 |
+| `image_captioning.max_images_per_doc` | `20` | 문서당 캡셔닝할 최대 이미지 수. 대용량 스캔 PDF/이미지 다수 문서의 지연 상한 |
+| `image_captioning.max_concurrent_tasks` | `5` | 이미지별 VLM 호출 동시성(asyncio.Semaphore) |
+| `image_captioning.default_language` | `"ko"` | 문서 텍스트가 없는 경우 캡션 언어(ISO 639-1) |
+| **pdf_ocr_fallback** | | |
+| `pdf_ocr_fallback.enabled` | `false` | PDF OCR 폴백 활성화 여부 (opt-in) |
+| `pdf_ocr_fallback.engine` | `"rapidocr"` | OCR 엔진. `rapidocr`(onnxruntime 기반, PaddleOCR 모델을 ONNX로 변환해 재사용) |
+| `pdf_ocr_fallback.language` | `"korean"` | RapidOCR `Rec.lang_type` 값 |
+| `pdf_ocr_fallback.min_chars_per_page` | `50` | 페이지 평균 글자 수가 이 값 미만이면 OCR 경로로 자동 전환 |
+
+**운영 고려사항 (rag-ent-api 전용)**
+
+- `image_captioning`은 `provider.name`(§11)을 embedding과 **공유**한다 — ollama/openai 어느 쪽을
+  쓰든 embedding과 동일한 provider 블록(`provider.ollama_url`/`provider.openai_api_key`)을
+  재사용하고, 모델명만 `image_captioning.model`로 별도 지정한다.
+- `pdf_ocr_fallback`은 provider와 무관한 순수 로컬 OCR이다 — 외부 API 호출이 없다.
+- 두 기능 모두 기본값은 `false`(opt-in)다. 활성화하면 문서당 처리 시간이 늘어난다 — 대량
+  스캔 PDF가 많은 배포에서는 `max_images_per_doc`/`max_concurrent_tasks`를 보수적으로 설정한다.
+- 자세한 배포/설치 절차는 `install/04-enterprise-setup.md`를 참고한다.
 
 ---
 
@@ -350,32 +430,53 @@ chunking:
 
 ---
 
-## 11. embedding
+## 11. provider
 
-임베딩 모델 설정. dense 벡터 생성에 사용하며, sparse는 클라이언트가 TF만 계산하고 IDF는 Qdrant 서버가 코퍼스 기반으로 자동 관리한다.
+임베딩과 (rag-ent-api 전용) 이미지 캡셔닝이 공유하는 LLM/임베딩 백엔드 연결 설정. 이전에는
+`embedding.provider`/`embedding.ollama_url`/`embedding.openai_api_key`였으나, 캡셔닝 기능이
+동일한 provider 설정을 재사용해야 해서 최상위 공용 블록으로 분리했다(2026-07-16, `provider`
+분리 리팩터링).
 
 ```yaml
-embedding:
-  provider: "ollama"
-  model: "bge-m3"
-  vector_size: 1024
+provider:
+  name: "ollama"
   ollama_url: "http://localhost:11434"
   openai_api_key: ""
-  openai_model: "text-embedding-3-small"
 ```
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
-| `provider` | `"ollama"` | `ollama`: 로컬 Ollama 서버. `openai`: OpenAI API |
-| `model` | `"bge-m3"` | Ollama 모델 이름 |
-| `vector_size` | `1024` | Dense 벡터 차원수. 모델과 일치해야 함 |
+| `name` | `"ollama"` | `ollama`: 로컬 Ollama 서버. `openai`: OpenAI API — embedding, (rag-ent-api) ingestion.image_captioning 공통 |
 | `ollama_url` | `"http://localhost:11434"` | Ollama 서버 주소 |
 | `openai_api_key` | `""` | OpenAI provider 사용 시 필수 |
-| `openai_model` | `"text-embedding-3-small"` | OpenAI 임베딩 모델 이름 |
+
+**운영 고려사항**
+
+- `name`을 바꾸면 embedding과 image_captioning(rag-ent-api) 양쪽 모두 백엔드가 바뀐다 — 둘 중
+  하나만 다른 provider를 쓰고 싶다면 이 설정으로는 불가능하다(두 기능이 이 블록 하나를 공유).
+- `openai_api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
+- Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 엔드포인트 확인 시 `ollama: false`가 나오면 모델 로딩 중인 경우다.
+
+---
+
+## 12. embedding
+
+임베딩 모델 설정. dense 벡터 생성에 사용하며, sparse는 클라이언트가 TF만 계산하고 IDF는 Qdrant 서버가 코퍼스 기반으로 자동 관리한다. 백엔드 연결 정보(`ollama_url`/`openai_api_key`)는 §11 `provider`로 분리되어 있다 — 여기는 모델명/차원수만 다룬다.
+
+```yaml
+embedding:
+  model: "bge-m3"
+  vector_size: 1024
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `model` | `"bge-m3"` | `provider.name`(§11)에 맞는 모델명. ollama: `bge-m3` 등, openai: `text-embedding-3-small` 등 — provider별 별도 필드(`openai_model`)는 폐지되었다 |
+| `vector_size` | `1024` | Dense 벡터 차원수. 모델과 일치해야 함 |
 
 **모델별 vector_size**
 
-| 모델 | provider | vector_size |
+| 모델 | provider.name | vector_size |
 |------|----------|-------------|
 | `bge-m3` | ollama | `1024` |
 | `nomic-embed-text` | ollama | `768` |
@@ -386,12 +487,11 @@ embedding:
 
 - `vector_size`를 잘못 설정하면 Qdrant 컬렉션 생성 시 `ConfigError`로 기동이 실패한다. 모델 변경 시 반드시 함께 수정한다.
 - **모델 변경은 전체 재인덱싱을 수반한다.** 기존 Qdrant 컬렉션은 이전 차원으로 생성되어 있으므로 삭제 후 재생성해야 한다. KB별 `DELETE /api/kb/{id}` 후 재생성 → `POST /api/kb/{id}/reindex?force=true` 순서로 진행한다.
-- Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 엔드포인트 확인 시 `ollama: false`가 나오면 모델 로딩 중인 경우다.
-- `openai_api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
+- `model`을 바꿀 때 `provider.name`(§11)이 실제 그 모델을 제공하는 백엔드로 맞춰져 있는지 함께 확인한다.
 
 ---
 
-## 12. retrieval
+## 13. retrieval
 
 검색 방식과 파라미터 설정. 요청 시 `options` 필드로 오버라이드 가능하다.
 
@@ -414,14 +514,14 @@ retrieval:
     fallback_on_error: true
 ```
 
-### 12-1. 기본 설정
+### 13-1. 기본 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
 | `mode` | `"hybrid"` | `hybrid`: dense + sparse RRF. `similarity`: dense 코사인 유사도만 사용 |
 | `top_k` | `5` | 반환할 최대 청크 수 |
 
-### 12-2. hybrid 설정
+### 13-2. hybrid 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
@@ -434,7 +534,7 @@ retrieval:
 - `rrf_k: 60`은 업계 표준값이다. 변경 효과가 미미하므로 특별한 이유 없이 바꾸지 않는다.
 - hybrid 모드에서 `min_score`는 적용되지 않는다. 결과 수 제어는 `top_k`만으로 한다.
 
-### 12-3. similarity 설정
+### 13-3. similarity 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
@@ -445,7 +545,7 @@ retrieval:
 - `min_score: 0.0`은 관련성이 낮은 결과도 모두 반환한다. 품질 확인 후 `0.4`~`0.6` 수준으로 올리는 것을 권장한다.
 - bge-m3 기준 코사인 유사도 0.5 이하는 대체로 주제가 다른 문서다. 도메인에 따라 기준이 달라지므로 실제 검색 결과를 모니터링하며 조정한다.
 
-### 12-4. rerank 설정
+### 13-4. rerank 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
@@ -466,7 +566,7 @@ retrieval:
 
 ---
 
-## 13. knowledge_bases
+## 14. knowledge_bases
 
 시스템에 사전 등록할 KB 목록. 서버 기동 시 DB에 없는 KB를 자동 생성한다.
 
@@ -496,7 +596,7 @@ knowledge_bases:
 
 ---
 
-## 14. mcp
+## 15. mcp
 
 Model Context Protocol 서버 설정. AI 에이전트가 rag-api를 툴로 사용할 수 있게 한다.
 
@@ -519,7 +619,7 @@ mcp:
 
 ---
 
-## 15. tracing
+## 16. tracing
 
 Langfuse 기반 LLM 추적 설정. 임베딩 호출 및 검색 파이프라인의 trace를 기록한다.
 
@@ -548,7 +648,7 @@ tracing:
 
 ---
 
-## 16. logging
+## 17. logging
 
 애플리케이션 로그 레벨 설정.
 
@@ -583,7 +683,7 @@ logging:
 환경변수로 오버라이드되지 않으며 `settings.yaml`을 직접 수정해야 한다.
 
 ```bash
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=sk-...        # provider.openai_api_key (§11)로 주입 — 예전엔 embedding.openai_api_key였다
 S3_ACCESS_KEY=minio-access
 S3_SECRET_KEY=minio-secret
 REDIS_PASSWORD=secure-password
