@@ -1,7 +1,7 @@
 .PHONY: install start build serve deploy docker-build docker-push clean
 
 IMAGE_ORG ?= cnapcloud
-IMAGE_NAME ?= rag-delivery-docs
+IMAGE_NAME ?= rag-docs
 IMAGE_TAG ?= $(shell git rev-parse --short=4 HEAD)
 IMAGE = $(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_TAG)
 IMAGE_LATEST = $(IMAGE_ORG)/$(IMAGE_NAME):latest

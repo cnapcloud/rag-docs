@@ -28,7 +28,7 @@ const config = {
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'cnapcloud', // Usually your GitHub org/user name.
-  projectName: 'rag-delivery', // Usually your repo name.
+  projectName: 'rag-docs', // Usually your repo name.
 
   onBrokenLinks: 'throw',
 
@@ -49,7 +49,7 @@ const config = {
           sidebarPath: './sidebars.js',
           routeBasePath: '/',
           numberPrefixParser: false,
-          editUrl: 'https://github.com/cnapcloud/rag-delivery/tree/main/docs/',
+          editUrl: 'https://github.com/cnapcloud/rag-docs/tree/main/docs/',
         },
         blog: false,
         theme: {
@@ -80,7 +80,7 @@ const config = {
           {to: '/reference/01-api-guide', label: '레퍼런스', position: 'left'},
           {to: '/support/01-support-policy', label: '지원', position: 'left'},
           {
-            href: 'https://github.com/cnapcloud/rag-delivery',
+            href: 'https://github.com/cnapcloud/rag-docs',
             label: 'GitHub',
             position: 'right',
           },
@@ -110,7 +110,7 @@ const config = {
             title: '리소스',
             items: [
               {label: '데모 시나리오', to: '/demo/01-scenario'},
-              {label: 'GitHub', href: 'https://github.com/cnapcloud/rag-delivery'},
+              {label: 'GitHub', href: 'https://github.com/cnapcloud/rag-docs'},
             ],
           },
         ],
