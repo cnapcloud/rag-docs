@@ -1,0 +1,8 @@
+{
+  "position": 2,
+  "label": "설치",
+  "link": {
+    "type": "generated-index",
+    "description": "요구사항, Quick Start, k8s 설치, Enterprise 설정, 설치 검증, 연동 가이드"
+  }
+}

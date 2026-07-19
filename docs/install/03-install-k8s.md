@@ -1,4 +1,4 @@
-# 표준 설치 — Kubernetes (kustomize)
+# Kubernetes 배포
 
 운영 환경 설치 담당자(k8s 운영 경험 전제)를 위한 표준 설치 절차. 배포 매니페스트의 고객
 인도용 파라미터화(Helm 차트화)가 진행 중이며, 이 문서는 현재 `k8s/manifests/`의 kustomize

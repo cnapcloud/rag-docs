@@ -1,4 +1,4 @@
-# Quick Start — 평가용 설치 (docker-compose)
+# Quick Start
 
 제품 평가·PoC 담당자를 위한 가장 빠른 설치 경로 — 약 30분(이미지 빌드 시간 제외), Core 모드
 (인증 없음) 단일 호스트 docker-compose 배포.
@@ -94,7 +94,7 @@ curl http://localhost:8000/ready         # {"status":"ready", ...} 이면 준비
 
 ## 6. 첫 검색까지 (smoke test)
 
-관리 콘솔(http://localhost:8080)에서 UI로 진행하거나, 아래처럼 API로 진행한다.
+관리 콘솔(`http://localhost:8080`)에서 UI로 진행하거나, 아래처럼 API로 진행한다.
 
 ```bash
 # 1. KB 생성

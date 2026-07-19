@@ -1,4 +1,4 @@
-# Enterprise 구성 — SSO, 접근제어, 확장 기능
+# Enterprise 설치
 
 Enterprise 배포 설치 담당자, IdP 관리자를 위한 구성 가이드. Core 설치 완료
 ([02-quickstart.md](02-quickstart.md) 또는 [03-install-k8s.md](03-install-k8s.md))와 운영
@@ -106,7 +106,7 @@ rate_limit:                            # 사용자별 요청 제한 — 인증�
 **Enterprise 전용** 필드다 — rag-api 기본 `Settings`에는 존재하지 않으며, rag-ent-api가 자신의
 확장 `Settings` 서브클래스(`IngestionSettings`)에 필드를 추가해서만 존재한다. 실제 동작은
 `ingestion.parser_plugins`(rag-api의 파서 확장 레지스트리 — [reference/02-settings-guide.md
-§6](../reference/02-settings-guide.md#6-ingestion) 참고)로 등록되는 rag-ent-api 비공개
+§9](../reference/02-settings-guide.md#9-ingestion) 참고)로 등록되는 rag-ent-api 비공개
 패키지(`rag_ent.pipeline.plugins.image_ocr`, `rag_ent.pipeline.plugins.table_layout`)가
 구현한다 — rag-api 저장소에는 이 기능들의 코드나 설계 문서가 없다. rag-api 단독 배포에서는 이
 세 섹션을 설정 파일에 넣어도 무시된다.

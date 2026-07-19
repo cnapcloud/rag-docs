@@ -38,7 +38,7 @@
    - 카드 본문 중 "최고령" 문구 바로 아래로 마우스 포인터 이동
 7. Access Management로 이동, kb-02 선택 → Invite → john@cnapcloud.com 입력 → Look up
    → 결과 확인 후 Invite 확정 (실제 이메일 발송)
-8. Mailpit(https://mailpit.cnapcloud.com)으로 이동, inbox 첫 번째 메일 클릭 (1.5초 대기)
+8. Mailpit(`https://mailpit.cnapcloud.com`)으로 이동, inbox 첫 번째 메일 클릭 (1.5초 대기)
    → rag-admin으로 복귀
 9. Sign out
 

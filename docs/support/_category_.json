@@ -1,0 +1,8 @@
+{
+  "position": 5,
+  "label": "지원",
+  "link": {
+    "type": "generated-index",
+    "description": "지원 정책, 릴리스/호환성, 알려진 제약"
+  }
+}

@@ -1,4 +1,4 @@
-# Operations Guide (Docker Compose)
+# Operations Guide
 
 운영자 및 배포 담당자를 위한 절차 가이드 — Core 배포(docker-compose) 기준. k8s/Enterprise 배포는
 [01-runbook-k8s.md](01-runbook-k8s.md) 참고.

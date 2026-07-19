@@ -1,0 +1,8 @@
+{
+  "position": 4,
+  "label": "레퍼런스",
+  "link": {
+    "type": "generated-index",
+    "description": "API 가이드, 설정(settings.yaml) 레퍼런스, 환경변수(.env) 레퍼런스"
+  }
+}
