@@ -7,10 +7,7 @@
 일부 자격증명 항목은 환경변수로 오버라이드 가능하다 (`S3_ACCESS_KEY`, `POSTGRES_PASSWORD` 등 — 전체 목록은 [03-environment-guide.md](03-environment-guide.md) 참고). 이 목록 밖의 설정(대부분의 비-시크릿 항목)은 환경변수 오버라이드가 없으며 `settings.yaml`을 직접 수정해야 한다.
 
 이 문서는 rag-api 기본 `Settings`를 다룬다 — rag-ent-api도 이 섹션들을 그대로 상속해서 쓴다.
-rag-ent-api 전용 설정은 여기 없다 — 최상위에 새로 추가하는 `oidc`/`authz`/`smtp`/`rate_limit`/
-`security` 섹션이든, `ingestion.image_captioning`/`ingestion.pdf_ocr_fallback`처럼 기존 rag-api
-섹션 안에 중첩된 확장 필드든 모두
-[install/04-enterprise-setup.md](../install/04-enterprise-setup.md)에서 다룬다.
+rag-ent-api 전용 설정은 [install/04-enterprise-setup.md](../install/04-enterprise-setup.md)에서 다룬다.
 
 ---
 
@@ -154,7 +151,88 @@ redis:
 
 ---
 
-## 6. ingestion
+## 6. queue_worker
+
+인제스트 이벤트를 처리하는 워커 방식 선택.
+
+```yaml
+queue_worker:
+  enabled: true
+  max_workers: 5
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `enabled` | `true` | `true`: rag-api 내장 AsyncIO 워커 사용. `false`: Dagster 센서 사용 |
+| `max_workers` | `5` | 내장 워커 모드에서 동시 처리 가능한 최대 문서 수 |
+
+**운영 고려사항**
+
+| 모드 | 장점 | 단점 |
+|------|------|------|
+| `enabled: true` (내장 워커) | 별도 인프라 불필요, 배포 단순 | 태스크 강제 종료 불가, Dagster UI에서 실행 이력 미확인, **커넥터 sync 자동 스케줄 미지원** |
+| `enabled: false` (Dagster) | 실행 이력·실패 추적 가능, run 강제 종료 가능, 커넥터 sync 자동 스케줄 지원 | Dagster 컨테이너 필요 |
+
+- `max_workers`는 `postgres.pool_size`, 임베딩 서버(Ollama) 처리 용량을 고려해 설정한다. 내장 워커 기준 워커 1개가 embed 단계에서 Ollama에 집중적으로 요청을 보낸다. Ollama가 단일 모델 단일 GPU 구성이라면 `max_workers: 3` 정도가 실질 한계인 경우가 많다.
+- 내장 워커 모드에서 `status=running` 문서는 force-fail API로만 상태를 변경할 수 있으며 실제 AsyncIO 태스크는 종료되지 않는다. 태스크가 완료되면 상태를 덮어쓸 수 있으므로 주의한다.
+
+---
+
+## 7. queue_poll
+
+Redis 큐 폴링 설정. Dagster 센서 모드에서는 Dagster가 독자적인 tick 간격을 사용하며 이 설정은 내장 워커 모드에만 적용된다.
+
+```yaml
+queue_poll:
+  poll_interval_sec: 5
+  max_per_poll: 5
+  retry_interval_sec: 10
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `poll_interval_sec` | `5` | Redis 큐를 확인하는 주기(초) |
+| `max_per_poll` | `5` | 한 번의 poll에서 꺼낼 최대 이벤트 수 |
+| `retry_interval_sec` | `10` | 동일 문서가 이미 처리 중일 때 delay queue에서 재시도 대기 시간(초) |
+
+**운영 고려사항**
+
+- `max_per_poll`은 `queue_worker.max_workers`와 동일하거나 작게 설정한다. 크게 설정하면 워커보다 더 많은 이벤트를 꺼내서 일부가 즉시 delay queue로 밀린다.
+- `poll_interval_sec`를 낮추면 응답성이 올라가지만 Redis 연결 빈도가 늘어난다. 5초는 대부분의 워크로드에서 적절하다.
+- `retry_interval_sec`는 동시에 같은 문서가 업로드되었을 때 두 번째 요청이 얼마나 기다렸다가 재시도할지를 결정한다. 너무 낮으면 Redis delay sorted set의 조회 빈도가 높아진다.
+
+---
+
+## 8. provider
+
+임베딩과 (rag-ent-api 전용) 이미지 캡셔닝이 공유하는 LLM/임베딩 백엔드 연결 설정. 이전에는
+`embedding.provider`/`embedding.ollama_url`/`embedding.openai_api_key`였으나, 캡셔닝 기능이
+동일한 provider 설정을 재사용해야 해서 최상위 공용 블록으로 분리했다(2026-07-16, `provider`
+분리 리팩터링).
+
+```yaml
+provider:
+  name: "ollama"
+  ollama_url: "http://localhost:11434"
+  openai_api_key: ""
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `name` | `"ollama"` | `ollama`: 로컬 Ollama 서버. `openai`: OpenAI API — embedding, (rag-ent-api) ingestion.image_captioning 공통 |
+| `ollama_url` | `"http://localhost:11434"` | Ollama 서버 주소 |
+| `openai_api_key` | `""` | OpenAI provider 사용 시 필수 |
+
+**운영 고려사항**
+
+- `name`을 바꾸면 embedding과 image_captioning(rag-ent-api) 양쪽 모두 백엔드가 바뀐다 — 둘 중
+  하나만 다른 provider를 쓰고 싶다면 이 설정으로는 불가능하다(두 기능이 이 블록 하나를 공유).
+- `openai_api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
+- Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 엔드포인트 확인 시 `ollama: false`가 나오면 모델 로딩 중인 경우다.
+
+---
+
+## 9. ingestion
 
 파일 업로드 및 커넥터 수집 단계의 제한 설정.
 
@@ -215,7 +293,7 @@ ingestion:
 
 ---
 
-## 7. dedup
+## 10. dedup
 
 중복 문서 탐지 설정. 파이프라인에서 validate 단계 직후, parse 전에 실행된다. Stage별(SimHash/MinHash/
 chunk_compare) 하위 섹션으로 중첩되어 있다 — 어떤 값이 어느 단계 것인지 이름만으로 구분하기 위함
@@ -248,7 +326,7 @@ dedup:
     compare_all_candidates: false
 ```
 
-### 7-1. 작동 흐름
+### 10-1. 작동 흐름
 
 ```
 Stage 1 (SimHash)
@@ -297,59 +375,7 @@ Stage 3 (chunk_compare, Stage1/2가 "similar" 후보를 넘겼을 때만)
 
 ---
 
-## 8. queue_worker
-
-인제스트 이벤트를 처리하는 워커 방식 선택.
-
-```yaml
-queue_worker:
-  enabled: true
-  max_workers: 5
-```
-
-| 키 | 기본값 | 설명 |
-|----|--------|------|
-| `enabled` | `true` | `true`: rag-api 내장 AsyncIO 워커 사용. `false`: Dagster 센서 사용 |
-| `max_workers` | `5` | 내장 워커 모드에서 동시 처리 가능한 최대 문서 수 |
-
-**운영 고려사항**
-
-| 모드 | 장점 | 단점 |
-|------|------|------|
-| `enabled: true` (내장 워커) | 별도 인프라 불필요, 배포 단순 | 태스크 강제 종료 불가, Dagster UI에서 실행 이력 미확인, **커넥터 sync 자동 스케줄 미지원** |
-| `enabled: false` (Dagster) | 실행 이력·실패 추적 가능, run 강제 종료 가능, 커넥터 sync 자동 스케줄 지원 | Dagster 컨테이너 필요 |
-
-- `max_workers`는 `postgres.pool_size`, 임베딩 서버(Ollama) 처리 용량을 고려해 설정한다. 내장 워커 기준 워커 1개가 embed 단계에서 Ollama에 집중적으로 요청을 보낸다. Ollama가 단일 모델 단일 GPU 구성이라면 `max_workers: 3` 정도가 실질 한계인 경우가 많다.
-- 내장 워커 모드에서 `status=running` 문서는 force-fail API로만 상태를 변경할 수 있으며 실제 AsyncIO 태스크는 종료되지 않는다. 태스크가 완료되면 상태를 덮어쓸 수 있으므로 주의한다.
-
----
-
-## 9. queue_poll
-
-Redis 큐 폴링 설정. Dagster 센서 모드에서는 Dagster가 독자적인 tick 간격을 사용하며 이 설정은 내장 워커 모드에만 적용된다.
-
-```yaml
-queue_poll:
-  poll_interval_sec: 5
-  max_per_poll: 5
-  retry_interval_sec: 10
-```
-
-| 키 | 기본값 | 설명 |
-|----|--------|------|
-| `poll_interval_sec` | `5` | Redis 큐를 확인하는 주기(초) |
-| `max_per_poll` | `5` | 한 번의 poll에서 꺼낼 최대 이벤트 수 |
-| `retry_interval_sec` | `10` | 동일 문서가 이미 처리 중일 때 delay queue에서 재시도 대기 시간(초) |
-
-**운영 고려사항**
-
-- `max_per_poll`은 `queue_worker.max_workers`와 동일하거나 작게 설정한다. 크게 설정하면 워커보다 더 많은 이벤트를 꺼내서 일부가 즉시 delay queue로 밀린다.
-- `poll_interval_sec`를 낮추면 응답성이 올라가지만 Redis 연결 빈도가 늘어난다. 5초는 대부분의 워크로드에서 적절하다.
-- `retry_interval_sec`는 동시에 같은 문서가 업로드되었을 때 두 번째 요청이 얼마나 기다렸다가 재시도할지를 결정한다. 너무 낮으면 Redis delay sorted set의 조회 빈도가 높아진다.
-
----
-
-## 10. chunking
+## 11. chunking
 
 문서를 검색 가능한 청크로 분할하는 방식 설정.
 
@@ -380,35 +406,6 @@ chunking:
 - `chunk_overlap`을 늘리면 청크 경계에서 의미가 끊어지는 문제를 줄일 수 있지만 청크 수가 늘어나 Qdrant 스토리지와 검색 비용이 증가한다. `chunk_size`의 10~15% 수준이 일반적이다.
 - `semantic` 전략은 recursive 대비 임베딩 호출이 추가로 발생해 청킹 속도가 느려진다. 대량 문서 환경에서는 비용·속도 트레이드오프를 확인한 후 사용한다.
 - `min_chunk_chars`는 목차, 헤더만 있는 청크가 인덱싱되는 것을 방지한다. 너무 높게 설정하면 유효한 짧은 내용이 버려질 수 있다.
-
----
-
-## 11. provider
-
-임베딩과 (rag-ent-api 전용) 이미지 캡셔닝이 공유하는 LLM/임베딩 백엔드 연결 설정. 이전에는
-`embedding.provider`/`embedding.ollama_url`/`embedding.openai_api_key`였으나, 캡셔닝 기능이
-동일한 provider 설정을 재사용해야 해서 최상위 공용 블록으로 분리했다(2026-07-16, `provider`
-분리 리팩터링).
-
-```yaml
-provider:
-  name: "ollama"
-  ollama_url: "http://localhost:11434"
-  openai_api_key: ""
-```
-
-| 키 | 기본값 | 설명 |
-|----|--------|------|
-| `name` | `"ollama"` | `ollama`: 로컬 Ollama 서버. `openai`: OpenAI API — embedding, (rag-ent-api) ingestion.image_captioning 공통 |
-| `ollama_url` | `"http://localhost:11434"` | Ollama 서버 주소 |
-| `openai_api_key` | `""` | OpenAI provider 사용 시 필수 |
-
-**운영 고려사항**
-
-- `name`을 바꾸면 embedding과 image_captioning(rag-ent-api) 양쪽 모두 백엔드가 바뀐다 — 둘 중
-  하나만 다른 provider를 쓰고 싶다면 이 설정으로는 불가능하다(두 기능이 이 블록 하나를 공유).
-- `openai_api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
-- Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 엔드포인트 확인 시 `ollama: false`가 나오면 모델 로딩 중인 경우다.
 
 ---
 

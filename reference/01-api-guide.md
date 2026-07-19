@@ -183,6 +183,120 @@ Enterprise 배포에서는 위 KB API 전체에 인증 토큰과 아래 최소 �
 
 또한 `visibility`(`"private"`/`"public"`, 기본 `"private"`)는 Enterprise가 추가한 필드로 Core 스키마엔 없다 — `POST`(생성 시점) / `PATCH`(기존 KB 전환) 둘 다에서 받는다.
 
+### KB 설정 오버라이드 [공통]
+
+KB 단위로 인제스트 파이프라인 설정(`ingestion`/`chunking`/`dedup`)을 전역 `settings.yaml` 값과 다르게 오버라이드할 수 있다. 오버라이드는 KB별로 저장되며, 파이프라인은 문서를 처리할 때마다 전역값 위에 그 KB의 오버라이드를 병합한 유효 설정을 사용한다.
+
+#### 유효 설정 조회
+
+전역값과 KB 오버라이드를 병합한 현재 유효 설정을 반환한다. `ingestion`/`chunking`/`dedup` 세 섹션만 반환하며, 인프라 자격증명 등 다른 설정 섹션은 노출되지 않는다.
+
+```bash
+curl http://localhost:8000/api/kb/kb-01/settings
+```
+
+```json
+{
+  "ingestion": { "max_file_size_mb": 50, "min_content_chars": 200, "html_extraction_policy": "trafilatura", "...": "..." },
+  "chunking": { "strategy": "recursive", "chunk_size": 512, "chunk_overlap": 64, "...": "..." },
+  "dedup": { "enabled": true, "...": "..." }
+}
+```
+
+존재하지 않는 KB 조회 시 HTTP 404 반환.
+
+#### 오버라이드 가능 필드 스키마 조회
+
+오버라이드 가능한 전체 dot-key 목록과 각 필드의 `type`(`bool`/`int`/`float`/`str`/`enum`), `enum` 허용값, `default`, `overridable`, `min`/`max`, `description`, 소속 그룹을 반환한다. 프론트엔드가 필드 목록을 하드코딩하지 않고 동적으로 폼을 그릴 때 사용한다.
+
+```bash
+curl http://localhost:8000/api/kb/kb-01/settings/schema
+```
+
+```json
+{
+  "schema": {
+    "chunking.chunk_size": {
+      "type": "int", "default": 512, "min": 64, "max": 4096,
+      "overridable": true, "description": "청크 최대 문자 수", "group": "chunking"
+    },
+    "chunking.strategy": {
+      "type": "enum", "enum": ["recursive", "semantic"], "default": "recursive",
+      "overridable": true, "description": "청킹 전략", "group": "chunking"
+    },
+    "dedup.simhash.ngram": {
+      "type": "int", "default": 3, "overridable": false,
+      "description": "기존 문서 지문과 계산 방식이 달라져 재인덱싱 없이는 비교 불가능해짐", "group": "dedup"
+    }
+  }
+}
+```
+
+`ingestion.parser_plugins`, `dedup.simhash.ngram`/`num_bands`/`simhash_bits`, `dedup.minhash.user_words_path` 등 배포 타임에 고정되거나 기존 저장된 데이터와의 호환성 때문에 KB별로 바꿀 수 없는 필드는 `overridable: false`로 표시된다 — 이 필드를 오버라이드 저장 API에 보내면 명시적으로 거부된다(조용히 무시하지 않음).
+
+Enterprise 배포는 이 스키마에 자체 확장 필드(`ingestion.image_captioning.*`, `ingestion.pdf_ocr_fallback.*`, `ingestion.table_layout.*`)도 함께 포함해 반환한다.
+
+#### 저장된 오버라이드 조회
+
+이 KB에 실제로 저장된 오버라이드만(전역값과 병합하지 않은 원본) flat dict로 반환한다. 오버라이드가 없으면 `{}`.
+
+```bash
+curl http://localhost:8000/api/kb/kb-01/settings/overrides
+```
+
+```json
+{ "overrides": { "chunking.chunk_size": 1024, "ingestion.max_file_size_mb": 100 } }
+```
+
+#### 오버라이드 저장 — 전체 교체 / 부분 upsert
+
+```bash
+# 전체 교체 — body에 없는 기존 키는 전역값으로 리셋
+curl -X PUT http://localhost:8000/api/kb/kb-01/settings/overrides \
+  -H "Content-Type: application/json" \
+  -d '{"overrides": {"chunking.chunk_size": 1024, "ingestion.max_file_size_mb": 100}}'
+
+# 부분 upsert — 지정한 키만 갱신/추가, 값이 null이면 그 키를 해제(전역값으로 리셋), 나머지 기존 키는 그대로 유지
+curl -X PATCH http://localhost:8000/api/kb/kb-01/settings/overrides \
+  -H "Content-Type: application/json" \
+  -d '{"overrides": {"chunking.chunk_overlap": 128, "ingestion.max_file_size_mb": null}}'
+```
+
+응답 (HTTP 200): 저장 후 최종 오버라이드 dict.
+
+```json
+{ "kb_id": "kb-01", "overrides": { "chunking.chunk_size": 1024, "chunking.chunk_overlap": 128 } }
+```
+
+두 API 모두 저장 전 아래 순서로 검증하며, 위반 시 HTTP 422를 반환한다.
+
+1. dot-key가 `ingestion.` / `chunking.` / `dedup.` 접두사로 시작하는지 (아니면 거부 — 인프라 자격증명 등 다른 설정 섹션 보호)
+2. 실제 존재하는 필드 경로인지, 그리고 `overridable: false`로 표시된 필드가 아닌지
+3. 값 자체가 필드의 타입/범위(`min`/`max`)/enum을 만족하는지
+
+#### 오버라이드 전체 삭제
+
+이 KB의 모든 오버라이드를 삭제해 전역 설정값으로 완전히 되돌린다.
+
+```bash
+curl -X DELETE http://localhost:8000/api/kb/kb-01/settings/overrides
+```
+
+응답 (HTTP 200): `{ "kb_id": "kb-01", "status": "overrides_cleared" }`
+
+#### KB 설정 오버라이드 — Enterprise 확장 [Enterprise 전용]
+
+| 메서드 | 경로 | 최소 역할 |
+|--------|------|-----------|
+| GET | `/api/kb/{kb_id}/settings` | viewer |
+| GET | `/api/kb/{kb_id}/settings/schema` | viewer |
+| GET | `/api/kb/{kb_id}/settings/overrides` | viewer |
+| PUT | `/api/kb/{kb_id}/settings/overrides` | owner |
+| PATCH | `/api/kb/{kb_id}/settings/overrides` | owner |
+| DELETE | `/api/kb/{kb_id}/settings/overrides` | owner |
+
+조회(GET)는 다른 KB 리소스와 동일하게 viewer부터 허용하지만, 오버라이드를 바꾸는 쓰기(PUT/PATCH/DELETE)는 파이프라인 동작 자체를 바꾸는 만큼 admin이 아니라 owner 이상만 가능하다.
+
 ---
 
 ## 4. KB 멤버십 관리 [Enterprise 전용]

@@ -7,12 +7,13 @@ Enterprise 배포 설치 담당자, IdP 관리자를 위한 구성 가이드. Co
 Enterprise 배포는 rag-ent-api 이미지로 API를 교체하고 IdP·SMTP 설정을 추가하면 된다.
 활성화되는 기능: OIDC 인증, KB 단위 RBAC(viewer/editor/admin/owner), 멤버십·이메일 초대,
 소유권 관리, 권한 필터가 적용된 검색·MCP, 사용자별 요청 속도 제한(rate limit), 커넥터
-시크릿 암호화, 그리고 opt-in 인제스트 확장(이미지 캡셔닝, PDF OCR 폴백). 상세 동작은
-[api-guide.md](../reference/01-api-guide.md) 참조.
+시크릿 암호화, 그리고 opt-in 인제스트 확장(이미지 캡셔닝, PDF OCR 폴백, 표 구조 보존 파싱).
+상세 동작은 [api-guide.md](../reference/01-api-guide.md) 참조.
 
 이 문서는 rag-ent-api가 새로 추가하는 최상위 섹션(`oidc`/`authz`/`smtp`/`rate_limit`/
 `security`)과, 기존 rag-api 섹션에 중첩된 Enterprise 전용 확장 필드
-(`ingestion.image_captioning`/`ingestion.pdf_ocr_fallback`, §2.1)를 다룬다. rag-ent-api는
+(`ingestion.image_captioning`/`ingestion.pdf_ocr_fallback`/`ingestion.table_layout`, §2.1)를
+다룬다. rag-ent-api는
 rag-api의 `Settings`(ingestion/dedup/chunking/embedding/retrieval 등)를 그대로 상속해 쓰므로,
 나머지 공통 설정값은 rag-api의 [02-settings-guide.md](../reference/02-settings-guide.md)를 참고한다.
 
@@ -98,21 +99,25 @@ rate_limit:                            # 사용자별 요청 제한 — 인증�
 **SMTP는 반드시 실 발송 가능한 서버를 사용한다.** 평가 환경의 mailpit은 메일을 가두는
 개발 도구로, 운영에서 사용하면 초대 메일이 사용자에게 도달하지 않는다.
 
-### 2.1 이미지 캡셔닝 / PDF OCR 폴백 (opt-in)
+### 2.1 이미지 캡셔닝 / PDF OCR 폴백 / 표 구조 보존 파싱 (opt-in)
 
 위 섹션들과 달리 `ingestion`은 rag-api 기본 `Settings`에 이미 있는 섹션이지만,
-`image_captioning`/`pdf_ocr_fallback` 두 하위 키는 rag-ent-api가 확장한 **Enterprise 전용**
-필드다 — rag-api 기본 `Settings`에는 존재하지 않으며, rag-ent-api가 자신의 확장 `Settings`
-서브클래스(`IngestionSettings`)에 필드를 추가해서만 존재한다. 실제 동작은
+`image_captioning`/`pdf_ocr_fallback`/`table_layout` 세 하위 키는 rag-ent-api가 확장한
+**Enterprise 전용** 필드다 — rag-api 기본 `Settings`에는 존재하지 않으며, rag-ent-api가 자신의
+확장 `Settings` 서브클래스(`IngestionSettings`)에 필드를 추가해서만 존재한다. 실제 동작은
 `ingestion.parser_plugins`(rag-api의 파서 확장 레지스트리 — [reference/02-settings-guide.md
 §6](../reference/02-settings-guide.md#6-ingestion) 참고)로 등록되는 rag-ent-api 비공개
-패키지(`rag_ent.pipeline.plugins.image_ocr`)가 구현한다 — rag-api 저장소에는 이 기능의 코드나
-설계 문서가 없다. rag-api 단독 배포에서는 이 두 섹션을 설정 파일에 넣어도 무시된다.
+패키지(`rag_ent.pipeline.plugins.image_ocr`, `rag_ent.pipeline.plugins.table_layout`)가
+구현한다 — rag-api 저장소에는 이 기능들의 코드나 설계 문서가 없다. rag-api 단독 배포에서는 이
+세 섹션을 설정 파일에 넣어도 무시된다.
 
 ```yaml
 ingestion:
   parser_plugins:
+    # 순서 중요: 두 플러그인 모두 .pdf 리더를 등록하고 register_parser()는
+    # last-writer-wins이므로, table_layout이 image_ocr 뒤에 로드되어야 .pdf 슬롯을 가져간다
     - "rag_ent.pipeline.plugins.image_ocr:register"
+    - "rag_ent.pipeline.plugins.table_layout:register"
 
   image_captioning:
     enabled: true
@@ -128,6 +133,11 @@ ingestion:
     engine: rapidocr
     language: korean
     min_chars_per_page: 50
+
+  table_layout:
+    enabled: true
+    scan_region_min_score: 0.5
+    scan_region_fragment_merge_gap_pt: 20
 ```
 
 | 키 | 기본값 | 설명 |
@@ -144,6 +154,10 @@ ingestion:
 | `pdf_ocr_fallback.engine` | `"rapidocr"` | OCR 엔진. `rapidocr`(onnxruntime 기반, PaddleOCR 모델을 ONNX로 변환해 재사용) |
 | `pdf_ocr_fallback.language` | `"korean"` | RapidOCR `Rec.lang_type` 값 |
 | `pdf_ocr_fallback.min_chars_per_page` | `50` | 페이지 평균 글자 수가 이 값 미만이면 OCR 경로로 자동 전환 |
+| **table_layout** | | |
+| `table_layout.enabled` | `false` | 표 구조 보존 파싱 활성화 여부 (opt-in) — 꺼져 있으면 표가 구조 없이 한 줄 텍스트로 뭉개진다 |
+| `table_layout.scan_region_min_score` | `0.5` | 스캔 페이지 표 영역 검출(RapidLayout `DOCLAYOUT_DOCSTRUCTBENCH`) 신뢰도 임계값 — 미달이면 표 후보에서 제외 |
+| `table_layout.scan_region_fragment_merge_gap_pt` | `20` | 같은 x범위를 공유하는 두 표 후보의 세로 간격(pt)이 이 값 이하면 내부 격자선이 끊겨 조각난 같은 표로 보고 하나로 합침 |
 
 **운영 고려사항**
 
@@ -151,8 +165,15 @@ ingestion:
   **공유**한다 — ollama/openai 어느 쪽을 쓰든 embedding과 동일한 provider 블록
   (`provider.ollama_url`/`provider.openai_api_key`)을 재사용하고, 모델명만
   `image_captioning.model`로 별도 지정한다.
-- `pdf_ocr_fallback`은 provider와 무관한 순수 로컬 OCR이다 — 외부 API 호출이 없다.
-- 두 기능 모두 기본값은 `false`(opt-in)다. 활성화하면 문서당 처리 시간이 늘어난다 — 대량
+- `pdf_ocr_fallback`/`table_layout`은 provider와 무관한 순수 로컬 추론이다 — 외부 API 호출이
+  없다. 둘 다 RapidOCR/RapidTable/RapidLayout(onnxruntime, CPU 전용 — GPU 가속 미지원) 모델을
+  쓰며, 모델 가중치는 이미지 빌드 시점에 미리 받아 컨테이너에 포함시킨다(콜드스타트 시
+  다운로드하지 않음).
+- `table_layout`은 vector PDF(텍스트 레이어 있음)와 스캔 PDF 양쪽에서 동작하되 표 위치
+  탐지 방식이 다르다 — vector는 `page.find_tables()`, 스캔은 `table_layout` 설정이 쓰는
+  RapidLayout 기반 영역 검출을 사용하고, 표 구조 인식(셀 병합/행렬 복원)은 두 경로 모두
+  RapidTable(SLANet-plus)을 공유한다.
+- 세 기능 모두 기본값은 `false`(opt-in)다. 활성화하면 문서당 처리 시간이 늘어난다 — 대량
   스캔 PDF가 많은 배포에서는 `max_images_per_doc`/`max_concurrent_tasks`를 보수적으로 설정한다.
 
 ## 3. 관리 콘솔 ENT 모드 활성화
