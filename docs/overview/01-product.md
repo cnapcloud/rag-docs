@@ -65,19 +65,15 @@ RAG Platform은 세 가지 컴포넌트로 구성된다.
 | 엔터프라이즈 레이어 | rag-ent-api | rag-api를 라이브러리로 확장. OIDC 인증, KB 단위 RBAC, 멤버십·이메일 초대, 소유권 관리, 권한이 적용된 검색/MCP |
 | 관리 콘솔 | rag-admin | 단일 빌드 웹 UI. KB/문서/커넥터 관리, 검색 콘솔, 인프라 상태 대시보드. 엔터프라이즈 배포에서는 SSO 로그인과 접근권한 관리 화면 활성화 |
 
-두 가지 배포 형태를 하나의 코드베이스로 지원한다.
+두 가지 배포 형태를 하나의 코드베이스로 지원한다 — **Core**(rag-api + rag-admin, 인증 없는
+내부망 전용 구성, 소규모 팀·PoC에 적합)와 **Enterprise**(rag-ent-api + rag-admin(ENT 모드) +
+Keycloak 연동, 전사 서비스·부서별 지식 격리가 필요한 조직에 적합). 세부 비교는
+[아키텍처 §4 Core vs Enterprise](03-architecture.md#4-core-vs-enterprise)를 참고한다.
 
-- **Core 배포**: rag-api + rag-admin. 인증 없는 내부망 전용 구성. 소규모 팀, PoC에 적합.
-- **Enterprise 배포**: rag-ent-api + rag-admin(ENT 모드) + Keycloak 연동. 전사 서비스,
-  부서별 지식 격리가 필요한 조직에 적합.
-
-### 인프라 스택
-
-Qdrant(벡터 검색), PostgreSQL(메타데이터), Redis(이벤트 큐), MinIO(원본 스토리지),
-Dagster(파이프라인 오케스트레이션), Ollama 또는 OpenAI(임베딩)로 구성되며 모두 셀프호스팅
-가능하다. 임베딩까지 로컬 모델(Ollama)로 구성하면 **외부 API 호출이 전혀 없는 완전 폐쇄망
-운영**이 가능하다 (리랭킹은 선택 기능으로, 사용 시 Jina API 연동 또는 비활성화). 컴포넌트별
-역할과 통신 구조는 [아키텍처](03-architecture.md)를 참고한다.
+인프라는 Qdrant·PostgreSQL·Redis·MinIO·Dagster·Ollama(또는 OpenAI)로 구성되며 모두
+셀프호스팅 가능하다. 임베딩까지 로컬 모델(Ollama)로 구성하면 **외부 API 호출이 전혀 없는
+완전 폐쇄망 운영**이 가능하다. 컴포넌트별 역할과 통신 구조는
+[아키텍처 §1 전체 구성](03-architecture.md#1-전체-구성)을 참고한다.
 
 ## 제품 포지셔닝
 

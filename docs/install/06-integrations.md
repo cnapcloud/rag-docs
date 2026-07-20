@@ -1,6 +1,6 @@
 # LibreChat 연동
 
-연동 애플리케이션 구성 담당자를 위한 연동 가이드. 핵심 시나리오: LibreChat 사용자가 자기
+LibreChat 연동 구성을 다룬다. 핵심 시나리오: LibreChat 사용자가 자기
 권한 범위의 KB만 대상으로 RAG 검색을 쓰는 구성(§1~§4). SSO·RBAC 기반 연동이므로 전체가
 Enterprise 배포를 전제로 한다.
 

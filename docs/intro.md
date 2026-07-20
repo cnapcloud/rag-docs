@@ -3,9 +3,9 @@ sidebar_position: 0
 title: 시작하기
 ---
 
-# RAG API Documentation
+# RAG Platform
 
-RAG 제품(rag-api / rag-ent-api / rag-admin)을 설치·운영·연동하는 고객·파트너를 위한 문서 모음입니다.
+RAG 제품(rag-api / rag-ent-api / rag-admin)의 설치·운영·연동 방법을 다루는 문서 모음이다.
 
 | 적용 대상 | 의미 |
 |---|---|

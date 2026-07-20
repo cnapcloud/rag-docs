@@ -1,6 +1,6 @@
 # Enterprise 설치
 
-Enterprise 배포 설치 담당자, IdP 관리자를 위한 구성 가이드. Core 설치 완료
+Enterprise 배포로 전환하는 구성 절차를 다룬다. Core 설치 완료
 ([02-quickstart.md](02-quickstart.md) 또는 [03-install-k8s.md](03-install-k8s.md))와 운영
 중인 OIDC IdP(Keycloak 기준 설명)가 전제 조건이다.
 

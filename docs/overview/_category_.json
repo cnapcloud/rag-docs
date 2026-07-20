@@ -1,8 +1,8 @@
 {
   "position": 1,
-  "label": "개요",
+  "label": "Overview",
   "link": {
     "type": "generated-index",
-    "description": "제품 개요, 기능 카탈로그, 아키텍처"
+    "description": "제품 개요, 핵심 기능 요약, 아키텍처"
   }
 }

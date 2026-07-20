@@ -1,7 +1,7 @@
 # Quick Start
 
-제품 평가·PoC 담당자를 위한 가장 빠른 설치 경로 — 약 30분(이미지 빌드 시간 제외), Core 모드
-(인증 없음) 단일 호스트 docker-compose 배포.
+가장 빠른 설치 경로 — 약 30분(이미지 빌드 시간 제외) 안에 Core 모드(인증 없음) 단일 호스트
+docker-compose로 배포해 제품을 평가할 수 있다.
 
 이 문서는 가장 빠르게 "문서 업로드 → 인덱싱 → 검색"을 체험하는 평가용 설치를 다룬다.
 인증(SSO)·접근제어를 포함한 Enterprise 구성 평가는 [04-enterprise-setup.md](04-enterprise-setup.md),

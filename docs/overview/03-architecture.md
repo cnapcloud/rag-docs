@@ -60,7 +60,7 @@ Enterprise add-on:  Keycloak (OIDC IdP)   SMTP (invite email)
 
 중복 검사(dedup) 단계에서 기존 문서와 동일·유사로 판정되면 이후 단계를 건너뛰어 중복
 청크가 검색 인덱스에 들어가지 않는다 (2단계 감지 — 해시 기반 + 유사도 기반,
-[기능 카탈로그](../overview/02-features.md) 참조).
+[기능 카탈로그](../reference/04-features-catalog.md) 참조).
 
 문서 유입 경로는 두 가지(직접 업로드, 커넥터 수집)지만 S3 저장 이후의 처리는 동일하다.
 

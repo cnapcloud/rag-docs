@@ -1,7 +1,7 @@
-# 관측 구성 — Langfuse, Prometheus, Grafana
+# Observability
 
-운영·관측 담당자를 위한 관측 구성 가이드. 대시보드 일부는 설계는 완료되었으나 구현이
-진행 중이며, 해당 항목은 본문에 표시했다.
+Langfuse·Prometheus·Grafana 기반 관측 구성을 다룬다. 대시보드 일부는 설계는 완료되었으나
+구현이 진행 중이며, 해당 항목은 본문에 표시했다.
 
 ---
 

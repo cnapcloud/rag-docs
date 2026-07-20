@@ -1,8 +1,8 @@
 {
   "position": 4,
-  "label": "레퍼런스",
+  "label": "Reference",
   "link": {
     "type": "generated-index",
-    "description": "API 가이드, 설정(settings.yaml) 레퍼런스, 환경변수(.env) 레퍼런스"
+    "description": "API 가이드, 설정(settings.yaml) 레퍼런스, 환경변수(.env) 레퍼런스, 기능 카탈로그, Docker Compose 컴포넌트 참조"
   }
 }

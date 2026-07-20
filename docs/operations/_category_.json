@@ -1,6 +1,6 @@
 {
   "position": 3,
-  "label": "운영",
+  "label": "Operations",
   "link": {
     "type": "generated-index",
     "description": "백업/복구/업그레이드 runbook(k8s / docker-compose), 관측 구성"

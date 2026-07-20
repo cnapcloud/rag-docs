@@ -70,15 +70,15 @@ const config = {
       navbar: {
         title: 'RAG Platform',
         logo: {
-          alt: 'RAG Platform 로고',
+          alt: 'RAG Platform logo',
           src: 'img/logo.svg',
         },
         items: [
-          {to: '/overview/01-product', label: '개요', position: 'left'},
-          {to: '/install/01-requirements', label: '설치', position: 'left'},
-          {to: '/operations/01-runbook-k8s', label: '운영', position: 'left'},
-          {to: '/reference/01-api-guide', label: '레퍼런스', position: 'left'},
-          {to: '/support/01-support-policy', label: '지원', position: 'left'},
+          {to: '/overview/01-product', label: 'Overview', position: 'left'},
+          {to: '/install/01-requirements', label: 'Install', position: 'left'},
+          {to: '/operations/01-runbook-k8s', label: 'Operations', position: 'left'},
+          {to: '/reference/01-api-guide', label: 'Reference', position: 'left'},
+          {to: '/support/01-support-policy', label: 'Support', position: 'left'},
           {
             href: 'https://github.com/cnapcloud/rag-docs',
             label: 'GitHub',
@@ -90,26 +90,26 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: '문서',
+            title: 'Docs',
             items: [
-              {label: '개요', to: '/overview/01-product'},
-              {label: '설치', to: '/install/02-quickstart'},
-              {label: '운영', to: '/operations/01-runbook-k8s'},
-              {label: '레퍼런스', to: '/reference/01-api-guide'},
+              {label: 'Overview', to: '/overview/01-product'},
+              {label: 'Install', to: '/install/02-quickstart'},
+              {label: 'Operations', to: '/operations/01-runbook-k8s'},
+              {label: 'Reference', to: '/reference/01-api-guide'},
             ],
           },
           {
-            title: '지원',
+            title: 'Support',
             items: [
-              {label: '지원 정책', to: '/support/01-support-policy'},
-              {label: '릴리스 노트', to: '/support/02-releases'},
-              {label: '알려진 제약', to: '/support/03-known-limitations'},
+              {label: 'Support Policy', to: '/support/01-support-policy'},
+              {label: 'Release Notes', to: '/support/02-releases'},
+              {label: 'Known Limitations', to: '/support/03-known-limitations'},
             ],
           },
           {
-            title: '리소스',
+            title: 'Resources',
             items: [
-              {label: '데모 시나리오', to: '/demo/01-scenario'},
+              {label: 'Demo Scenario', to: '/demo/01-scenario'},
               {label: 'GitHub', href: 'https://github.com/cnapcloud/rag-docs'},
             ],
           },

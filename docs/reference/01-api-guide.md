@@ -5,7 +5,7 @@
 | 기본(1~14장 중 [공통] 표시) | Core, Enterprise 둘 다 |
 | [Enterprise 전용] 표시 절 | Enterprise만 (rag-ent-api가 rag-api를 라이브러리로 임포트해 OIDC 인증 + KB 단위 역할 기반 접근 제어(RBAC)를 추가한 레이어) |
 
-API 사용자 및 운영자를 위한 엔드포인트 사용 가이드이다.
+전체 엔드포인트의 요청·응답 형식과 사용법을 정리한다.
 
 Base URL: `http://localhost:8000`
 
