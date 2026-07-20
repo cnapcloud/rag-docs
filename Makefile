@@ -16,7 +16,7 @@ start:
 build:
 	npm run build
 
-serve:
+serve: build
 	npm run serve -- --port 3000
 
 # GitHub Pages 배포. USE_SSH=true 또는 GIT_USER=<username>를 앞에 붙여서 호출:

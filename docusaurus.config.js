@@ -10,7 +10,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'RAG API Documentation',
+  title: 'RAG Platform',
   tagline: 'rag-api / rag-ent-api / rag-admin 설치·운영·연동 가이드',
   favicon: 'img/favicon.ico',
 
@@ -68,9 +68,9 @@ const config = {
         respectPrefersColorScheme: true,
       },
       navbar: {
-        title: 'RAG API Documentation',
+        title: 'RAG Platform',
         logo: {
-          alt: 'RAG API Documentation 로고',
+          alt: 'RAG Platform 로고',
           src: 'img/logo.svg',
         },
         items: [

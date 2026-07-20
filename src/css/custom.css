@@ -34,3 +34,8 @@
   --ifm-color-primary-lightest: #a8d6ff;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+/* Double the gap between the navbar brand and the first nav item (개요) */
+.navbar__items:not(.navbar__items--right) .navbar__brand + .navbar__item {
+  margin-left: 1.75rem;
+}

@@ -1,20 +1,17 @@
-# 배포 아키텍처
+# 아키텍처
 
-도입 검토자·인프라 설계자를 위한 배포 아키텍처 문서. 전체 구성도, 핵심 데이터 흐름
-(인제스트·검색·커넥터 동기화), 네트워크 정책 설계용 통신 매트릭스, Core/Enterprise
-차이, 실행 모드, 고가용성·장애 복구 관점을 다룬다 — 설치 절차 자체가 아니라 설계
-판단에 필요한 배경 정보 제공이 목적이며, 실제 설치는 [03-install-k8s.md](../install/03-install-k8s.md)를 따른다.
+RAG Platform의 전체 구성도, 핵심 데이터 흐름(인제스트·검색·커넥터 동기화), 네트워크 정책 설계용
+통신 매트릭스, Core/Enterprise 차이, 실행 모드, 고가용성·장애 복구 관점 등 배포 설계에 필요한 배경 정보를 다룬다.
 
 ---
 
-## 1. 전체 구성 (Kubernetes 기준)
+## 1. 전체 구성
 
 ```
                      [User / Integrated App / MCP Client]
                                     |
                                   HTTPS
                                     v
-                     nginx ingress (TLS)
                      +------------+-------------+
                      v                          v
             rag-admin (console)         rag-api (API + MCP)
@@ -23,7 +20,6 @@
                      +--------------------------+
                                     |
                                     v
-               namespace: llm
                +------------------------------------------+
                | dagster (webserver / daemon / user-code) |
                |   |                                      |
@@ -32,7 +28,6 @@
                +------------------------------------------+
                                     |
                                     v
-    namespace: infra (reuse existing or install separately)
    +----------------------------------------------------------------+
    | PostgreSQL(CNPG)   Redis(HA)     MinIO(S3)    embedding server |
    | metadata/authz     event queue   raw docs     Ollama(GPU) or   |
@@ -46,7 +41,7 @@ Enterprise add-on:  Keycloak (OIDC IdP)   SMTP (invite email)
 
 | 프로바이더 | 구성 | 선택 기준 |
 |-----------|------|-----------|
-| Ollama (기본) | 클러스터 내부 또는 별도 GPU 노드에 자체 호스팅 (기본 모델 bge-m3) | 폐쇄망·데이터 반출 불가 환경, 호출 비용 없음 |
+| Ollama | 클러스터 내부 또는 별도 GPU 노드에 자체 호스팅 (기본 모델 bge-m3) | 폐쇄망·데이터 반출 불가 환경, 호출 비용 없음 |
 | OpenAI | 외부 API 호출 (`text-embedding-3-small` 등) | GPU 인프라 없이 빠른 도입 — 문서 내용이 외부로 전송되는 점을 보안 정책과 확인 |
 
 컴포넌트별 요구 리소스는 [01-requirements.md](../install/01-requirements.md), 설치 절차는
@@ -97,7 +92,7 @@ Enterprise 배포는 질의 전에 호출자의 KB 권한으로 대상을 필터
 |------|------|------|------|
 | ingress | rag-admin | 80 | 콘솔 UI |
 | ingress | rag-api | 8000 | API·MCP |
-| rag-admin(브라우저) | rag-api | 8000 | API 호출 |
+| rag-admin | rag-api | 8000 | API 호출 |
 | rag-api | Postgres / Redis / Qdrant / S3 | 5432 / 6379 / 6333 / 9000 | 데이터 계층 |
 | rag-api | Dagster webserver | 3000 | run 조회·종료 (GraphQL) |
 | rag-api | 임베딩 서버 (Ollama 11434 또는 OpenAI API 443) | 11434 / 443 | 검색 질의 임베딩 |
