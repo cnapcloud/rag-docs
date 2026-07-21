@@ -1,0 +1,8 @@
+{
+  "position": 1,
+  "label": "rag-api",
+  "link": {
+    "type": "generated-index",
+    "description": "KB / Connector / Pipeline / Document / Search / MCP — rag-api 도메인별 How-to"
+  }
+}

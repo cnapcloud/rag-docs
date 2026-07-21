@@ -1,0 +1,8 @@
+{
+  "position": 1,
+  "label": "Getting Started",
+  "link": {
+    "type": "generated-index",
+    "description": "Quick Start로 설치하고, 첫 KB를 만들어 문서를 올리고 검색까지 해보는 튜토리얼"
+  }
+}

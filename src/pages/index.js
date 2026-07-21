@@ -23,7 +23,7 @@ function HomepageHeader() {
           환경 특화, MCP를 통한 에이전트 연동까지 하나의 플랫폼에서 제공합니다.
         </p>
         <div className={styles.buttons}>
-          <Link className="button button--primary button--lg" to="/intro">
+          <Link className="button button--primary button--lg" to="/overview">
             문서 시작하기 →
           </Link>
         </div>

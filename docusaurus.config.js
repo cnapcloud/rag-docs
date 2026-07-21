@@ -74,9 +74,10 @@ const config = {
           src: 'img/logo.svg',
         },
         items: [
-          {to: '/overview/01-product', label: 'Overview', position: 'left'},
-          {to: '/install/01-requirements', label: 'Install', position: 'left'},
-          {to: '/operations/01-runbook-k8s', label: 'Operations', position: 'left'},
+          {to: '/overview', label: 'Overview', position: 'left'},
+          {to: '/getting-started/quickstart', label: 'Getting Started', position: 'left'},
+          {to: '/concepts/architecture', label: 'Concepts', position: 'left'},
+          {to: '/guides/rag-api/kb', label: 'Guides', position: 'left'},
           {to: '/reference/01-api-guide', label: 'Reference', position: 'left'},
           {to: '/support/01-support-policy', label: 'Support', position: 'left'},
           {
@@ -92,9 +93,10 @@ const config = {
           {
             title: 'Docs',
             items: [
-              {label: 'Overview', to: '/overview/01-product'},
-              {label: 'Install', to: '/install/02-quickstart'},
-              {label: 'Operations', to: '/operations/01-runbook-k8s'},
+              {label: 'Overview', to: '/overview'},
+              {label: 'Getting Started', to: '/getting-started/quickstart'},
+              {label: 'Concepts', to: '/concepts/architecture'},
+              {label: 'Guides', to: '/guides/rag-api/kb'},
               {label: 'Reference', to: '/reference/01-api-guide'},
             ],
           },

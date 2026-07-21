@@ -2,35 +2,68 @@
 
 
 docs/
-├── intro.md                          # 플랫폼 전체 소개, 3개 제품 관계도
+├── intro.md                          # conductor-oss devguide/concepts 패턴 차용 — 4단 구성:
+│                                      # 1) RAG Platform으로 뭘 할 수 있나(핵심 가치·사용 시나리오)
+│                                      # 2) 핵심 빌딩 블록(KB/Connector/Document/Search 정의 +
+│                                      #    각 상세 문서로 링크) 3) 차별점(경쟁 제품 포지셔닝,
+│                                      #    Core/Enterprise 차이) 4) 더 깊이 보기(concepts/·guides/ 링크)
 │
-├── getting-started/                  # Tutorial (Diátaxis)
+├── getting-started/                  # Tutorial (Diátaxis) — installation.md 없음: quickstart와
+│   │                                  # 겹치지 않는 고유 튜토리얼 콘텐츠가 없어서 제외.
+│   │                                  # 기존 install/01-requirements.md(사이징 표, Reference
+│   │                                  # 성격)는 deployment/production-checklist.md로 이동
 │   ├── quickstart.md                 # docker-compose로 5분 안에 띄우기
-│   ├── installation.md
 │   └── first-kb-and-query.md         # KB 생성 → 문서 업로드 → 검색까지 엔드투엔드
 │
-├── concepts/                         # Explanation (Diátaxis)
-│   ├── architecture-overview.md      # rag-api/admin/ent 관계, 아키텍처 다이어그램
-│   ├── knowledge-base.md
-│   ├── embedding-and-search.md       # BGE-M3, BM25 하이브리드 검색 개념
-│   ├── deduplication.md              # SimHash→MinHash→cosine→LLM 분류 파이프라인
-│   └── access-control.md             # RBAC 모델 (owner/member)
+├── concepts/                         # Explanation (Diátaxis) — 정적 구조 → 정적 인프라 →
+│   │                                  # 동적 흐름 → 엔터티 상태 → 횡단 권한 순으로 쌓이는 구성.
+│   │                                  # 내부 엔지니어링 문서(docs/internal/architecture, 3분할:
+│   │                                  # application/technical/runtime)와 같은 원칙을 쓰되,
+│   │                                  # 대상은 "고치는 사람"이 아니라 "도입·연동하는 사람"
+│   ├── architecture.md      # [구조] rag-api/rag-ent-api/rag-admin 컴포넌트 구성과
+│   │                                  # 각자 책임, KB가 이 구조 전체를 조직하는 핵심 도메인
+│   │                                  # 개념이라는 것(문서 격리+설정 오버라이드+권한 경계가
+│   │                                  # 동시에 KB 단위로 걸림), Core/Enterprise가 이 구조 안에서
+│   │                                  # 무엇이 바뀌는지(API 이미지·설정만 다르고 아키텍처는 동일)
+│   ├── data-flow.md                   # [흐름] architecture.md의 Pipeline Layer가 다루지 않은
+│   │                                  # 두 가지 — 검색 흐름(질의→하이브리드 검색→RRF→리랭크
+│   │                                  # →응답, 리랭커 폴백)과 dedup이 왜 3단계(해시→MinHash→
+│   │                                  # 청크 코사인 유사도) 깔때기 구조인지
+│   ├── document-lifecycle.md         # [상태] 문서 8개 상태(활성 4/안정 4), 활성 상태에서
+│   │                                  # 요청이 409로 막히는 이유, dedup 판정→outdated 전이,
+│   │                                  # 재시작 후 stuck 문서가 생기는 이유와 복구
+│   ├── connector-lifecycle.md        # [상태] status/sync_status 이원 상태, error에서 자동
+│   │                                  # 복구되는 조건, abort와 sync 실패가 다르게 취급되는 이유,
+│   │                                  # 자동 스케줄에만 있는 stale lock(1시간), 재시작 후 복구
+│   └── access-control.md             # [권한] KB 단위 RBAC 4단계(viewer/editor/admin/owner)가
+│                                       # REST·검색·MCP 전체에 동일하게 적용된다는 일관성 원칙
 │
-├── guides/                           # How-to (Diátaxis) — 제품별 하위 분류
-│   ├── rag-api/
-│   │   ├── managing-knowledge-bases.md
-│   │   ├── embedding-search-tuning.md
-│   │   └── deduplication-policies.md
-│   ├── rag-admin/
-│   │    ├── dashboard-overview.md          # 대시보드 지표 읽는 법
-│   │    ├── managing-knowledge-bases.md    # KB 생성/목록/상태 확인
-│   │    ├── document-upload-and-status.md  # 업로드, 처리 상태(임베딩/dedup) 모니터링
-│   │    ├── user-and-permission-management.md  # owner/member 역할 부여, 초대
-│   │    └── monitoring-and-logs.md       
-│   └── rag-ent/
-│       ├── sso-and-auth-setup.md      # Keycloak OBO 연동 등
-│       ├── scanned-document-ocr.md    # 이미지/스캔 처리
-│       └── table-extraction.md
+├── guides/                           # How-to (Diátaxis) — 제품별 하위 분류, 각 제품의
+│   │                                  # 실제 도메인 모델을 그대로 뼈대로 사용 (KB/Connector/
+│   │                                  # Pipeline/Document/Search 등) — 백로그 항목 나열이 아님
+│   ├── rag-api/                      # KB / Connector / Pipeline / Document / Search / MCP
+│   │   ├── kb.md   # KB 생성/관리 + 설정 오버라이드(ingestion/chunking/dedup)
+│   │   ├── connectors.md                 # 웹/Confluence/GitHub 커넥터 생성·동기화·운영
+│   │   ├── ingestion-pipeline.md         # validate→parse→chunk→dedup→embed→upsert→meta 각 스텝
+│   │   │                                  # (파서 확장 레지스트리, dedup 임계값 튜닝 포함)
+│   │   ├── documents.md                  # 업로드·상태 추적·재인덱싱·복구·삭제(문서 생명주기)
+│   │   ├── search.md                     # 하이브리드/유사도 검색, alpha·rerank·min_score 튜닝
+│   │   └── mcp-integration.md            # MCP 서버(search/list_knowledge_bases/get_document_status)
+│   ├── rag-admin/                    # 콘솔 화면 단위 — rag-api 도메인과 1:1 대응
+│   │   ├── dashboard-overview.md         # Home — 대시보드 지표, 인프라 상태 타일 읽는 법
+│   │   ├── managing-knowledge-bases.md   # Knowledge Bases — KB 생성/목록/상태 확인
+│   │   ├── connectors.md                 # Connectors — 커넥터 생성 마법사 UI로 운영
+│   │   ├── documents.md                  # Documents — 업로드, 처리 상태(임베딩/dedup) 모니터링
+│   │   ├── query-playground.md           # Query Playground — 검색 콘솔 사용법
+│   │   ├── configuration-overrides.md    # Configuration — KB 설정 오버라이드 편집 화면
+│   │   └── access-management.md          # Access Management [ENT] — 역할 부여, 초대, 소유권 이전
+│   └── rag-ent/                      # rag-ent-api 확장 능력 단위
+│       ├── sso-and-auth-setup.md         # OIDC/Keycloak 연동
+│       ├── membership-and-invites.md     # 멤버십·초대·소유권 이전
+│       ├── kb-visibility.md              # public KB
+│       ├── rate-limiting.md              # 사용자별 요청 제한
+│       ├── image-captioning-ocr-fallback.md  # 이미지 캡셔닝, 스캔 문서 OCR 폴백
+│       └── table-layout-parsing.md       # PDF 표 구조 보존 파싱
 │
 ├── reference/                        # Reference (Diátaxis) — 정확성 우선, 가능하면 자동생성
 │   ├── rag-api/
@@ -110,7 +143,8 @@ Docusaurus 기반 또는 유사 규모의 멀티 오디언스 OSS 프로젝트 5
 | 기존 | 신규 |
 |---|---|
 | `intro.md` | `intro.md` (유지) |
-| `install/01-requirements.md`, `02-quickstart.md` | `getting-started/installation.md`, `quickstart.md` |
+| `install/01-requirements.md` | `deployment/production-checklist.md` (사이징·요구사항 표) |
+| `install/02-quickstart.md` | `getting-started/quickstart.md` |
 | `install/03-install-k8s.md` | `deployment/kubernetes.md` |
 | `install/04-enterprise-setup.md` | `guides/rag-ent/sso-and-auth-setup.md` (SSO 부분) + `deployment/production-checklist.md` (인프라 부분) 분리 |
 | `install/05-verification.md` | `getting-started/first-kb-and-query.md`에 통합 |
@@ -118,7 +152,7 @@ Docusaurus 기반 또는 유사 규모의 멀티 오디언스 OSS 프로젝트 5
 | `operations/01-runbook-k8s.md`, `03-runbook-docker-compose.md` | `deployment/production-checklist.md` |
 | `operations/02-observability.md` | `guides/rag-admin/monitoring-and-logs.md` |
 | `overview/01-product.md`, `02-features.md` | `intro.md` |
-| `overview/03-architecture.md` | `concepts/architecture-overview.md` |
+| `overview/03-architecture.md` | `concepts/architecture.md` |
 | `reference/01-api-guide.md` | `reference/rag-api/rest-api.md` + `reference/rag-ent/rest-api.md` (제품별 분리) |
 | `reference/02-settings-guide.md`, `03-environment-guide.md` | `reference/rag-api/configuration.md` |
 | `reference/04-features-catalog.md` | `concepts/` 하위 관련 파일에 흡수 |
