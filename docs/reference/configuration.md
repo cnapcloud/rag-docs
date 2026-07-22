@@ -1,13 +1,19 @@
-# Settings Guide
+---
+sidebar_position: 2
+---
 
-`settings.yaml`의 모든 설정 항목을 섹션별로 설명하고, 운영 시 고려해야 할 사항을 정리한다.
+# Configuration
 
-설정 파일 위치: `settings.yaml` (프로젝트 루트), `docker/settings.yaml` (컨테이너 배포용)
+`settings.yaml`에 있는 모든 설정 항목의 의미·기본값·바꿀 때 고려할 점을 섹션별로 정리한다.
 
-일부 자격증명 항목은 환경변수로 오버라이드 가능하다 (`S3_ACCESS_KEY`, `POSTGRES_PASSWORD` 등 — 전체 목록은 [03-environment-guide.md](03-environment-guide.md) 참고). 이 목록 밖의 설정(대부분의 비-시크릿 항목)은 환경변수 오버라이드가 없으며 `settings.yaml`을 직접 수정해야 한다.
+설정 파일은 로컬 실행 시 `settings.yaml`(프로젝트 루트)을 그대로 쓰고, 컨테이너 안에서는
+배포 방식과 무관하게 `/app/settings.yaml` 경로에 있어야 한다. 시크릿(비밀번호·API 키)은
+이 문서가 다루는 `settings.yaml`에 직접 쓰지 않고 배포 방식에 맞는 시크릿 저장소에 담는다
+— 평문 형상관리 대상과 시크릿을 분리하기 위함이다.
 
-이 문서는 rag-api 기본 `Settings`를 다룬다 — rag-ent-api도 이 섹션들을 그대로 상속해서 쓴다.
-rag-ent-api 전용 설정은 [install/04-enterprise-setup.md](../install/04-enterprise-setup.md)에서 다룬다.
+- **Docker Compose** — `settings.yaml`은 볼륨 마운트로 주입, 시크릿은 `docker/.env`(실제
+  변수 목록은 [Environment Variables](environment-variables.md) 참고)
+- **Kubernetes** — `settings.yaml`은 ConfigMap으로 주입, 시크릿은 Secret 리소스
 
 ---
 
@@ -126,7 +132,7 @@ qdrant:
 
 ## 5. redis
 
-인제스트·삭제 이벤트 큐 전용 Redis 연결 설정. API가 enqueue한 이벤트를 `event_queue_sensor`(Dagster 모드) 또는 `QueueWorker`(내장 워커 모드)가 소비해 파이프라인을 실행한다.
+인제스트·삭제 이벤트 큐 전용 Redis 연결 설정. API가 enqueue한 이벤트를 `event_queue_sensor`(Dagster 모드) 또는 `QueueWorker`(내장 워커 모드)가 소비해 파이프라인을 실행한다. Enterprise 배포는 같은 Redis를 역할 캐시, rate limit 카운터, 초대 로그인 체크에도 함께 쓴다.
 
 ```yaml
 redis:
@@ -145,7 +151,7 @@ redis:
 
 **운영 고려사항**
 
-- 기본 설정은 RDB 스냅샷 모드다. Redis 비정상 종료 시 마지막 스냅샷 이후에 enqueue된 이벤트가 유실될 수 있다. 무중단 운영이 필요하면 AOF를 활성화한다 — 자세한 절차는 [03-runbook-docker-compose.md 5-3](../operations/03-runbook-docker-compose.md#5-3-redis-aof-영속성) 참고.
+- 기본 설정은 RDB 스냅샷 모드다. Redis 비정상 종료 시 마지막 스냅샷 이후에 enqueue된 이벤트가 유실될 수 있다. 무중단 운영이 필요하면 AOF 활성화를 검토한다.
 - Redis DB 인덱스를 변경하면 기존 큐 데이터가 보이지 않아 미처리 이벤트가 유실된다. 운영 중 변경은 금지한다.
 - `password`는 `REDIS_PASSWORD` 환경변수로 주입하는 것을 권장한다.
 
@@ -205,10 +211,7 @@ queue_poll:
 
 ## 8. provider
 
-임베딩과 (rag-ent-api 전용) 이미지 캡셔닝이 공유하는 LLM/임베딩 백엔드 연결 설정. 이전에는
-`embedding.provider`/`embedding.ollama_url`/`embedding.openai_api_key`였으나, 캡셔닝 기능이
-동일한 provider 설정을 재사용해야 해서 최상위 공용 블록으로 분리했다(2026-07-16, `provider`
-분리 리팩터링).
+임베딩과 (Enterprise 전용) 이미지 캡셔닝이 공유하는 LLM/임베딩 백엔드 연결 설정.
 
 ```yaml
 provider:
@@ -219,14 +222,13 @@ provider:
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
-| `name` | `"ollama"` | `ollama`: 로컬 Ollama 서버. `openai`: OpenAI API — embedding, (rag-ent-api) ingestion.image_captioning 공통 |
+| `name` | `"ollama"` | `ollama`: 로컬 Ollama 서버. `openai`: OpenAI API — embedding, (Enterprise) `ingestion.image_captioning` 공통 |
 | `ollama_url` | `"http://localhost:11434"` | Ollama 서버 주소 |
 | `openai_api_key` | `""` | OpenAI provider 사용 시 필수 |
 
 **운영 고려사항**
 
-- `name`을 바꾸면 embedding과 image_captioning(rag-ent-api) 양쪽 모두 백엔드가 바뀐다 — 둘 중
-  하나만 다른 provider를 쓰고 싶다면 이 설정으로는 불가능하다(두 기능이 이 블록 하나를 공유).
+- `name`을 바꾸면 embedding과 image_captioning(Enterprise) 양쪽 모두 백엔드가 바뀐다 — 둘 중 하나만 다른 provider를 쓰고 싶다면 이 설정으로는 불가능하다(두 기능이 이 블록 하나를 공유).
 - `openai_api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
 - Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 엔드포인트 확인 시 `ollama: false`가 나오면 모델 로딩 중인 경우다.
 
@@ -248,8 +250,8 @@ ingestion:
 |----|--------|------|
 | `max_file_size_mb` | `10` | 파일 업로드 최대 크기(MB). 초과 시 422 반환 |
 | `min_content_chars` | `200` | 웹 커넥터 전용. trafilatura 본문 추출 결과가 이 값 미만인 페이지는 저장 제외 |
-| `html_extraction_policy` | `"lenient"` | `pipeline/ops/parse.py`의 `HTMLCleanReader`(`.html`/`.htm` 파싱)가 trafilatura로 본문을 추출할 때 애매한 블록(사이드바 경계 등)을 얼마나 적극적으로 포함시킬지 결정. `"strict"`/`"lenient"`/`"balanced"` 중 하나(US-39, 2026-07-13) |
-| `parser_plugins` | `[]` | 파서 확장 레지스트리에 로드할 `"module.path:register_func"` 문자열 목록. 목록에 나열된 순서대로 import되어 각 `register()`가 실행되며, 기본 파서(PDF/DOCX/MD/TXT/HWP/HTML 등)를 교체하거나 새 확장자를 추가할 수 있다(2026-07-15, `docs/internal/design/parser-registry.md` 참고) |
+| `html_extraction_policy` | `"lenient"` | `HTMLCleanReader`(`.html`/`.htm` 파싱)가 trafilatura로 본문을 추출할 때 애매한 블록(사이드바 경계 등)을 얼마나 적극적으로 포함시킬지 결정. `"strict"`/`"lenient"`/`"balanced"` 중 하나 |
+| `parser_plugins` | `[]` | 파서 확장 레지스트리에 로드할 `"module.path:register_func"` 문자열 목록. 목록에 나열된 순서대로 import되어 각 `register()`가 실행되며, 기본 파서(PDF/DOCX/MD/TXT/HWP/HTML 등)를 교체하거나 새 확장자를 추가할 수 있다 |
 
 **`html_extraction_policy` 값별 동작**
 
@@ -263,15 +265,15 @@ ingestion:
 
 - `max_file_size_mb`를 크게 올리면 파싱·임베딩 시간이 선형 이상으로 늘어날 수 있다. 대용량 PDF(100MB+)는 LlamaIndex 파서가 메모리를 수백 MB 사용한다. 실제 필요 크기를 기준으로 보수적으로 설정한다.
 - `min_content_chars`는 크롤 대상 사이트의 특성에 따라 조정한다. 짧은 페이지(FAQ, 카드형 UI)가 많은 사이트에서는 너무 높게 설정하면 유효한 문서가 걸러질 수 있다. 수집 결과를 확인한 후 조정한다.
-- `html_extraction_policy`는 기본값(`"lenient"`)을 유지하는 것을 권장한다. 이전 기본값은 `"strict"`였으나, 위키형 페이지에서 본문 대부분이 boilerplate로 오판되어 검색이 아예 안 되는 사례가 실측되어 `"lenient"`로 전환했다(`docs/internal/design/html-extraction.md` 3.2 참고). 반대로 특정 사이트의 문서가 dedup에서 계속 오탐(동일 문서인데 unique로 판정)되거나, 라이선스 푸터/네비게이션 문구가 검색 결과에 자주 섞여 나온다는 신호가 관찰되면 `"strict"` 또는 `"balanced"`로 전환해 재검증한다.
+- `html_extraction_policy`는 기본값(`"lenient"`)을 유지하는 것을 권장한다. 이전 기본값은 `"strict"`였으나, 위키형 페이지에서 본문 대부분이 boilerplate로 오판되어 검색이 아예 안 되는 사례가 실측되어 전환했다. 반대로 특정 사이트의 문서가 dedup에서 계속 오탐되거나 라이선스 푸터/네비게이션 문구가 검색 결과에 자주 섞여 나온다는 신호가 관찰되면 `"strict"` 또는 `"balanced"`로 전환해 재검증한다.
 - 이미 `"strict"` 정책으로 인제스트된 기존 HTML 문서는 설정을 바꿔도 자동으로 재추출되지 않는다 — 재인제스트(reindex)가 필요하다.
 
 **`parser_plugins`**
 
-`pipeline/step/parse.py`의 확장자 -> 리더 매핑은 정적 상수가 아니라 등록 기반 레지스트리다.
-`parser_plugins`에는 "무엇을 로드할지"만 나열하며, 각 항목이 실제로 무엇을 등록/해제하는지는
-그 모듈의 `register()` 코드에 있다 — 설정은 스위치 역할만 한다. 저장소 밖(비공개 패키지)의
-모듈도 dotted path로 그대로 참조할 수 있다.
+확장자 → 리더 매핑은 정적 상수가 아니라 등록 기반 레지스트리다. `parser_plugins`에는
+"무엇을 로드할지"만 나열하며, 각 항목이 실제로 무엇을 등록/해제하는지는 그 모듈의
+`register()` 코드에 있다 — 설정은 스위치 역할만 한다. 저장소 밖(비공개 패키지)의 모듈도
+dotted path로 그대로 참조할 수 있다.
 
 ```yaml
 ingestion:
@@ -280,27 +282,64 @@ ingestion:
     - "ent_pkg.parsers.pptx:register"         # 2) 1)과 무관하게 별도 확장자 등록
 ```
 
-**운영 고려사항 (`parser_plugins`)**
+- 목록 순서가 곧 로드 순서다 — 기본 파서가 먼저 등록된 뒤 목록이 순서대로 실행되므로, 뒤 항목이 앞 항목·기본 파서를 덮어쓸 수 있다.
+- 각 항목은 프로세스 최초 `parse()` 호출 시 지연 로드된다(애플리케이션 startup 훅에 묶지 않음) — FastAPI/Dagster op/큐 워커/CLI 등 `parse()` 진입점이 여러 개이기 때문.
+- Enterprise 배포는 이 메커니즘으로 이미지 캡셔닝/PDF OCR 폴백/표 구조 보존 파싱을 등록한다 —
+  아래 [Enterprise 확장 필드](#enterprise-확장-필드-enterprise-전용) 참고.
 
-- 목록 순서가 곧 로드 순서다 — 기본 파서가 먼저 등록된 뒤 목록이 순서대로 실행되므로, 뒤 항목이
-  앞 항목·기본 파서를 덮어쓸 수 있다.
-- 각 항목은 프로세스 최초 `parse()` 호출 시 지연 로드된다(애플리케이션 startup 훅에 묶지 않음) —
-  FastAPI/Dagster op/큐 워커/CLI 등 `parse()` 진입점이 여러 개이기 때문.
-- rag-ent-api는 이 메커니즘으로 이미지 캡셔닝/PDF OCR 폴백을 **비공개 패키지**로 등록한다 —
-  이 기능이 추가하는 `ingestion.image_captioning`/`ingestion.pdf_ocr_fallback` 설정은
-  Enterprise 전용이라 여기 없다. [install/04-enterprise-setup.md](../install/04-enterprise-setup.md)
-  참고.
+### 확장 필드 [ENT]
+
+`ingestion` 섹션에 Enterprise가 추가하는 세 하위 키. Core `Settings`에는 존재하지 않으며,
+Core 단독 배포에서는 설정 파일에 넣어도 무시된다. 처리 흐름은
+[파서 확장 처리 흐름](../concepts/ingestion-extensions.md), 설정 방법은
+[이미지 캡셔닝·OCR 폴백](../guides/rag-ent/image-captioning-ocr-fallback.md)/
+[표 구조 보존 파싱](../guides/rag-ent/table-layout-parsing.md) 참고.
+
+```yaml
+ingestion:
+  image_captioning:
+    enabled: false
+    model: "qwen2.5vl:3b"
+    temperature: 0.1
+    max_images_per_doc: 20
+    max_concurrent_tasks: 5
+    default_language: ko
+
+  pdf_ocr_fallback:
+    enabled: false
+    engine: rapidocr
+    language: korean
+    min_chars_per_page: 50
+
+  table_layout:
+    enabled: false
+    scan_region_min_score: 0.5
+    scan_region_fragment_merge_gap_pt: 20
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `image_captioning.enabled` | `false` | 이미지 캡셔닝 opt-in |
+| `image_captioning.model` | `"qwen2.5vl:3b"` | 비전 모델 이름(`provider.name`에 맞는 모델). KB별 오버라이드 불가 |
+| `image_captioning.temperature` | `0.1` | 캡션 재현성 확보를 위해 낮게 고정 |
+| `image_captioning.max_images_per_doc` | `20` | 문서당 캡셔닝할 최대 이미지 수 |
+| `image_captioning.max_concurrent_tasks` | `5` | 이미지별 VLM 호출 동시성 |
+| `image_captioning.default_language` | `"ko"` | 언어 감지 불가 시(독립 이미지 파일) 쓰는 캡션 언어 |
+| `pdf_ocr_fallback.enabled` | `false` | PDF OCR 폴백 opt-in |
+| `pdf_ocr_fallback.engine` | `"rapidocr"` | 현재 유일한 값 |
+| `pdf_ocr_fallback.language` | `"korean"` | RapidOCR `Rec.lang_type` 값 |
+| `pdf_ocr_fallback.min_chars_per_page` | `50` | 페이지 평균 글자 수가 이 값 미만이면 스캔 문서로 판단 |
+| `table_layout.enabled` | `false` | 표 구조 보존 파싱 opt-in |
+| `table_layout.scan_region_min_score` | `0.5` | 스캔 페이지 표 영역 검출(RapidLayout) 신뢰도 임계값 |
+| `table_layout.scan_region_fragment_merge_gap_pt` | `20` | 조각난 표 후보를 하나로 합칠 세로 간격(pt) 임계값 |
 
 ---
 
 ## 10. dedup
 
-중복 문서 탐지 설정. 파이프라인에서 validate 단계 직후, parse 전에 실행된다. Stage별(SimHash/MinHash/
-chunk_compare) 하위 섹션으로 중첩되어 있다 — 어떤 값이 어느 단계 것인지 이름만으로 구분하기 위함
-(2026-07-09, `docs/internal/design/dedup.md` 3.3 참고).
+중복 문서 탐지 설정. 파이프라인에서 validate 단계 직후, parse 전에 실행된다. Stage별(SimHash/MinHash/chunk_compare) 하위 섹션으로 중첩되어 있다 — 어떤 값이 어느 단계 것인지 이름만으로 구분하기 위함이다.
 
-중복 비교 대상은 **정상 색인된(`indexed`) 문서로 한정된다.** 이미 중복으로 처리되어 검색에서
-제외된 문서(`outdated`)나 처리 중/실패/삭제된 문서는 비교 대상에 포함되지 않는다.
+중복 비교 대상은 **정상 색인된(`indexed`) 문서로 한정된다.** 이미 중복으로 처리되어 검색에서 제외된 문서(`outdated`)나 처리 중/실패/삭제된 문서는 비교 대상에 포함되지 않는다.
 
 ```yaml
 dedup:
@@ -326,7 +365,7 @@ dedup:
     compare_all_candidates: false
 ```
 
-### 10-1. 작동 흐름
+### 작동 흐름
 
 ```
 Stage 1 (SimHash)
@@ -411,7 +450,7 @@ chunking:
 
 ## 12. embedding
 
-임베딩 모델 설정. dense 벡터 생성에 사용하며, sparse는 클라이언트가 TF만 계산하고 IDF는 Qdrant 서버가 코퍼스 기반으로 자동 관리한다. 백엔드 연결 정보(`ollama_url`/`openai_api_key`)는 §11 `provider`로 분리되어 있다 — 여기는 모델명/차원수만 다룬다.
+임베딩 모델 설정. dense 벡터 생성에 사용하며, sparse는 클라이언트가 TF만 계산하고 IDF는 Qdrant 서버가 코퍼스 기반으로 자동 관리한다. 백엔드 연결 정보(`ollama_url`/`openai_api_key`)는 [§8 provider](#8-provider)로 분리되어 있다 — 여기는 모델명/차원수만 다룬다.
 
 ```yaml
 embedding:
@@ -421,7 +460,7 @@ embedding:
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
-| `model` | `"bge-m3"` | `provider.name`(§11)에 맞는 모델명. ollama: `bge-m3` 등, openai: `text-embedding-3-small` 등 — provider별 별도 필드(`openai_model`)는 폐지되었다 |
+| `model` | `"bge-m3"` | `provider.name`(§8)에 맞는 모델명. ollama: `bge-m3` 등, openai: `text-embedding-3-small` 등 |
 | `vector_size` | `1024` | Dense 벡터 차원수. 모델과 일치해야 함 |
 
 **모델별 vector_size**
@@ -437,7 +476,7 @@ embedding:
 
 - `vector_size`를 잘못 설정하면 Qdrant 컬렉션 생성 시 `ConfigError`로 기동이 실패한다. 모델 변경 시 반드시 함께 수정한다.
 - **모델 변경은 전체 재인덱싱을 수반한다.** 기존 Qdrant 컬렉션은 이전 차원으로 생성되어 있으므로 삭제 후 재생성해야 한다. KB별 `DELETE /api/kb/{id}` 후 재생성 → `POST /api/kb/{id}/reindex?force=true` 순서로 진행한다.
-- `model`을 바꿀 때 `provider.name`(§11)이 실제 그 모델을 제공하는 백엔드로 맞춰져 있는지 함께 확인한다.
+- `model`을 바꿀 때 `provider.name`(§8)이 실제 그 모델을 제공하는 백엔드로 맞춰져 있는지 함께 확인한다.
 
 ---
 
@@ -464,14 +503,14 @@ retrieval:
     fallback_on_error: true
 ```
 
-### 13-1. 기본 설정
+### 기본 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
 | `mode` | `"hybrid"` | `hybrid`: dense + sparse RRF. `similarity`: dense 코사인 유사도만 사용 |
 | `top_k` | `5` | 반환할 최대 청크 수 |
 
-### 13-2. hybrid 설정
+### hybrid 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
@@ -484,7 +523,7 @@ retrieval:
 - `rrf_k: 60`은 업계 표준값이다. 변경 효과가 미미하므로 특별한 이유 없이 바꾸지 않는다.
 - hybrid 모드에서 `min_score`는 적용되지 않는다. 결과 수 제어는 `top_k`만으로 한다.
 
-### 13-3. similarity 설정
+### similarity 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
@@ -495,7 +534,7 @@ retrieval:
 - `min_score: 0.0`은 관련성이 낮은 결과도 모두 반환한다. 품질 확인 후 `0.4`~`0.6` 수준으로 올리는 것을 권장한다.
 - bge-m3 기준 코사인 유사도 0.5 이하는 대체로 주제가 다른 문서다. 도메인에 따라 기준이 달라지므로 실제 검색 결과를 모니터링하며 조정한다.
 
-### 13-4. rerank 설정
+### rerank 설정
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
@@ -622,38 +661,103 @@ logging:
 
 ---
 
-## 부록: 환경변수 오버라이드 규칙
+## 18. oidc [ENT]
 
-실제로 어떤 변수에 어떤 자격증명 값을 넣어야 하는지는
-[03-environment-guide.md](03-environment-guide.md)를 참고한다. 여기서는 오버라이드
-문법만 다룬다.
+Keycloak OIDC 연동 설정. 클라이언트·그룹 구성 절차는 [SSO·인증 설정](../guides/rag-ent/sso-and-auth-setup.md) 참고.
 
-`Settings.from_yaml()`이 자동으로 모든 키를 환경변수와 매칭하는 것이 아니다 — 코드에
-하드코딩된 아래 변수 목록만 읽는다(자격증명·시크릿 성격의 항목으로 한정). 목록 밖의 설정은
-환경변수로 오버라이드되지 않으며 `settings.yaml`을 직접 수정해야 한다.
-
-```bash
-OPENAI_API_KEY=sk-...        # provider.openai_api_key (§11)로 주입 — 예전엔 embedding.openai_api_key였다
-S3_ACCESS_KEY=minio-access
-S3_SECRET_KEY=minio-secret
-REDIS_PASSWORD=secure-password
-POSTGRES_USER=rag-api
-POSTGRES_PASSWORD=prod-password
-RERANKER_API_KEY=jina-...
-TRACING_LANGFUSE_PUBLIC_KEY=pk-lf-...
-TRACING_LANGFUSE_SECRET_KEY=sk-lf-...
-SERVER_PRODUCTION=true
-SERVER_WORKERS=4
+```yaml
+oidc:
+  issuer_url: "https://<keycloak 도메인>/realms/<realm>"
+  audience: ""
+  jwks_cache_ttl_seconds: 3600
+  admin_url: ""
+  admin_client_id: ""
+  admin_client_secret: ""
 ```
 
-Enterprise 배포(rag-ent-api)는 다음 4개가 추가된다 — 전체 설명은
-[03-environment-guide.md](03-environment-guide.md) 5절 참고.
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `issuer_url` | `""` | Keycloak realm 발급자 URL. JWKS 조회와 JWT `iss` 검증에 쓰인다 |
+| `audience` | `""` | 비어 있으면 `aud` claim 미검증. 값을 채우면 Keycloak 클라이언트에 Audience mapper가 있어야 한다 |
+| `jwks_cache_ttl_seconds` | `3600` | JWKS 캐시 유효 시간(초) |
+| `admin_url` | `""` | Keycloak Admin API 베이스 URL. 비어 있으면 이메일 조회가 항상 미가입으로 처리된다 |
+| `admin_client_id` / `admin_client_secret` | `""` | Admin API용 confidential 클라이언트 자격증명. `OIDC_ADMIN_CLIENT_ID`/`OIDC_ADMIN_CLIENT_SECRET` 환경변수로 주입 |
 
-```bash
-OIDC_ADMIN_CLIENT_ID=...
-OIDC_ADMIN_CLIENT_SECRET=...
-SMTP_USERNAME=...
-SMTP_PASSWORD=...
+---
+
+## 19. authz [ENT]
+
+KB 단위 RBAC 관련 설정. 역할 판정 경로와 role 계층은 [접근 제어](../concepts/access-control.md) 참고.
+
+```yaml
+authz:
+  super_admin_role: "rag-super-admin"
+  role_cache_ttl_seconds: 60
+  invite_expiry_days: 7
 ```
 
-환경변수는 `settings.yaml` 값보다 우선 적용된다.
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `super_admin_role` | `"rag-super-admin"` | JWT `groups` claim에서 슈퍼관리자 여부를 판정하는 그룹명 |
+| `role_cache_ttl_seconds` | `60` | Redis에 캐시하는 KB 역할·접근 가능 KB 목록의 TTL. 역할 변경 시에는 캐시가 즉시 무효화되므로, 이 TTL은 무효화가 누락된 경우의 보수적 상한이다 |
+| `invite_expiry_days` | `7` | 이메일 초대의 유효 기간(일) |
+
+`kb_authz_enabled`(RBAC 전체 on/off)는 이 섹션의 설정값이 아니라 `GET`/`PATCH /api/admin/config`로
+런타임에 토글하는 시스템 설정이다 — [API Guide §6.4](api-guide.md)와
+[SSO·인증 설정의 RBAC 활성화](../guides/rag-ent/sso-and-auth-setup.md#rbac-활성화) 참고.
+
+---
+
+## 20. smtp [ENT]
+
+멤버 초대·역할 부여 이메일 발송 설정. 다른 Enterprise 기능은 SMTP에 의존하지 않는다. 상세는
+[멤버십·초대·소유권 관리의 알림 메일 설정](../guides/rag-ent/membership-and-invites.md#알림-메일-설정-smtp) 참고.
+
+```yaml
+smtp:
+  host: "localhost"
+  port: 1025
+  username: ""
+  password: ""
+  from_address: "noreply@rag-ent-api.local"
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `host` / `port` | `"localhost"` / `1025` | SMTP 서버 주소. 기본값은 로컬 개발용 mailpit |
+| `username` / `password` | `""` | 비어 있으면 인증 없이 발송(mailpit 등). `SMTP_USERNAME`/`SMTP_PASSWORD` 환경변수로 주입 |
+| `from_address` | `"noreply@rag-ent-api.local"` | 발신자 주소 |
+
+**운영 고려사항**: mailpit은 메일을 외부로 보내지 않고 가두는 개발용 도구다. 운영 환경은
+반드시 실제로 발송 가능한 SMTP 서버로 교체한다.
+
+---
+
+## 21. rate_limit [ENT]
+
+사용자별 API 요청 제한 설정. 규칙 매칭·카운팅 방식은
+[사용자별 요청 제한](../guides/rag-ent/rate-limiting.md) 참고.
+
+```yaml
+rate_limit:
+  enabled: true
+  rules:
+    - name: search
+      paths: ["/api/search"]
+      limit: "10/second"
+    - name: upload
+      paths: ["/api/kb/*/docs/upload", "/api/kb/*/docs/upload/batch"]
+      limit: "30/minute"
+      weights:
+        "/api/kb/*/docs/upload/batch": 10
+  default: "120/minute"
+  exempt_paths: ["/health", "/ready", "/docs", "/redoc", "/openapi.json"]
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `enabled` | `false` | opt-in. 꺼져 있으면 미들웨어가 요청을 세지 않고 통과시킨다 |
+| `rules[].paths` | — | `*`는 경로 세그먼트 하나와 매칭 |
+| `rules[].weights` | `{}` | 특정 경로 호출 1건을 몇 건으로 셀지 |
+| `default` | `"120/minute"` | 어떤 `rules`에도 매칭되지 않는 나머지 경로의 기본 한도 |
+| `exempt_paths` | 헬스체크·문서 경로 | 카운터 자체를 건드리지 않는 경로 |

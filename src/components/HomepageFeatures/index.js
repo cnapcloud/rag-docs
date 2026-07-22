@@ -15,7 +15,7 @@ const FeatureList = [
     title: '개요',
     Icon: OverviewIcon,
     description: '제품 정의, 기능 카탈로그, 아키텍처.',
-    to: '/overview/01-product',
+    to: '/overview/introduction',
   },
   {
     title: '설치',
@@ -33,13 +33,13 @@ const FeatureList = [
     title: '레퍼런스',
     Icon: ReferenceIcon,
     description: 'API 가이드, 설정(settings.yaml), 환경변수(.env) 레퍼런스.',
-    to: '/reference/01-api-guide',
+    to: '/reference/api-guide',
   },
   {
     title: '지원',
     Icon: SupportIcon,
     description: '지원 정책, 릴리스/호환성, 알려진 제약.',
-    to: '/support/01-support-policy',
+    to: '/support/support-policy',
   },
   {
     title: '데모',

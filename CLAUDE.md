@@ -100,6 +100,39 @@ Reference)를 기준으로 `docs/` 하위 구조를 잡는다 — 상세 트리�
 - 코드 심볼(설정 키, 함수명, 엔드포인트)은 백틱으로 감싸고 실제 코드와 대소문자·철자를
   일치시킨다.
 
+## Enterprise 전용 표시
+
+Core(rag-api)에는 없고 Enterprise(rag-ent-api)에만 있는 내용은 `[ENT]` 한 가지 표기로만
+표시한다. 범위에 따라 붙이는 위치가 다르다.
+
+- **문서 전체**가 Enterprise 전용이면 H1 제목 끝에 `[ENT]`를 붙인다.
+- **일부 절**(H2/H3 등)만 Enterprise 전용이면 그 소제목 끝에 `[ENT]`를 붙인다.
+- **문장 하나**만 Enterprise 관련 사실이면(공통 절 안에 섞여 있는 경우) 그 문장 끝에
+  `[ENT]`를 붙인다.
+
+이 세 경우 외에는 "공통"이나 "Enterprise"라는 표기를 쓰지 않는다 — 표시가 없으면 그 자체로
+Core/Enterprise 공통이라는 뜻이다. 다만 Core와 Enterprise의 실제 차이를 설명해야 하는
+문장(예: "Core 배포는 이 필드가 없다", "Enterprise는 여기에 KB 단위 역할을 추가로 검사한다")
+에서는 필요한 만큼 프로즈로 언급한다 — 금지 대상은 장식적인 `[공통]`/`[Enterprise 전용]`
+태그이지, 차이를 설명하는 문장 자체가 아니다.
+
+`[ENT]` 표기 자체의 의미("Enterprise에서만 동작한다")는 사이트 전체 안내(개요/소개 문서)
+한 곳에서만 정의한다. 개별 reference/guide 문서에서 `[ENT]`를 쓸 때마다 그 의미를 다시
+설명하지 않는다 — 태그만 붙이고 정의는 반복하지 않는다.
+
+**설명 프로즈에서 `rag-api`/`rag-ent-api` 저장소 이름을 주어로 쓰지 않는다** — 대신
+`Core`/`Enterprise`(필요하면 "Core API"/"Enterprise API")로 부른다. 저장소 이름은 구현
+세부사항이고, 독자가 실제로 다루는 개념은 배포 티어(Core/Enterprise)다. 예:
+
+```
+금지: rag-ent-api는 rag-api를 라이브러리로 임포트해 RBAC를 추가한다.
+올바름: Enterprise는 Core 위에 RBAC를 추가로 얹는 배포 티어다.
+```
+
+단, 코드블록 안의 실제 값(컨테이너 이름, 호스트명, `docker-compose` 서비스 키, 설정값
+등 독자가 그대로 입력·복사해야 하는 문자열)은 그대로 둔다 — 그 경우는 표현의 문제가
+아니라 사실이다. `rag-admin`(콘솔)은 티어가 아니라 별도 제품이므로 이 규칙 대상이 아니다.
+
 ## 참고
 
 이 표준은 Google Developer Documentation Style Guide, Microsoft Writing Style Guide의

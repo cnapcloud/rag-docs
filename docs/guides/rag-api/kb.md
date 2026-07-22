@@ -162,5 +162,5 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/settings/overrides
 ---
 
 Enterprise 배포에서는 위 API 전체에 KB 단위 역할이 추가로 걸리고 `visibility`(공개/비공개)
-필드가 추가된다 — [access-management.md](../rag-admin/access-management.md)와
+필드가 추가된다 — [RAG Admin의 Knowledge Bases 화면](../rag-admin/knowledge-bases.md)과
 [access-control.md](../../concepts/access-control.md) 참고.

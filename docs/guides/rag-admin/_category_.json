@@ -1,0 +1,8 @@
+{
+  "position": 2,
+  "label": "RAG Admin",
+  "link": {
+    "type": "generated-index",
+    "description": "KB/커넥터/멤버 관리 대시보드 — rag-admin 화면별 How-to"
+  }
+}

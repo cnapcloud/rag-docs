@@ -2,11 +2,17 @@
 
 
 docs/
-├── intro.md                          # conductor-oss devguide/concepts 패턴 차용 — 4단 구성:
-│                                      # 1) RAG Platform으로 뭘 할 수 있나(핵심 가치·사용 시나리오)
-│                                      # 2) 핵심 빌딩 블록(KB/Connector/Document/Search 정의 +
-│                                      #    각 상세 문서로 링크) 3) 차별점(경쟁 제품 포지셔닝,
-│                                      #    Core/Enterprise 차이) 4) 더 깊이 보기(concepts/·guides/ 링크)
+├── overview/                          # 원안의 intro.md 단일 파일 대신, 카테고리로 구성해
+│   │                                  # 소개(내러티브)와 기능 카탈로그(스캔용 표)의 역할을 분리
+│   ├── introduction.md               # conductor-oss devguide/concepts 패턴 차용 — 4단 구성:
+│   │                                  # 1) RAG Platform으로 뭘 할 수 있나(핵심 가치·사용 시나리오)
+│   │                                  # 2) 핵심 빌딩 블록(KB/Connector/Document/Search 정의 +
+│   │                                  #    각 상세 문서로 링크) 3) 차별점(경쟁 제품 포지셔닝,
+│   │                                  #    Core/Enterprise 차이) 4) 더 깊이 보기(concepts/·guides/ 링크)
+│   └── features.md                   # [Core]/[ENT] 표기가 붙은 영역별 전체 기능·파라미터
+│                                      # 카탈로그 — concepts/에 흡수하는 대신(성격이 안 맞음:
+│                                      # concepts는 "왜"를 설명, 이 문서는 스캔용 체크리스트)
+│                                      # introduction.md와 같은 카테고리에 남겨 인트로 역할 유지
 │
 ├── getting-started/                  # Tutorial (Diátaxis) — installation.md 없음: quickstart와
 │   │                                  # 겹치지 않는 고유 튜토리얼 콘텐츠가 없어서 제외.
@@ -29,14 +35,22 @@ docs/
 │   │                                  # 두 가지 — 검색 흐름(질의→하이브리드 검색→RRF→리랭크
 │   │                                  # →응답, 리랭커 폴백)과 dedup이 왜 3단계(해시→MinHash→
 │   │                                  # 청크 코사인 유사도) 깔때기 구조인지
+│   ├── ingestion-extensions.md       # [흐름, Enterprise] rag-ent-api가 parser_plugins로
+│   │                                  # parse 단계에 꽂는 이미지 캡셔닝/PDF OCR 폴백/표 구조
+│   │                                  # 보존 파싱 처리 흐름 — vector/스캔 페이지의 표 위치
+│   │                                  # 탐지 방식이 갈리는 이유, content_type별 chunk 처리
 │   ├── document-lifecycle.md         # [상태] 문서 8개 상태(활성 4/안정 4), 활성 상태에서
 │   │                                  # 요청이 409로 막히는 이유, dedup 판정→outdated 전이,
 │   │                                  # 재시작 후 stuck 문서가 생기는 이유와 복구
 │   ├── connector-lifecycle.md        # [상태] status/sync_status 이원 상태, error에서 자동
 │   │                                  # 복구되는 조건, abort와 sync 실패가 다르게 취급되는 이유,
 │   │                                  # 자동 스케줄에만 있는 stale lock(1시간), 재시작 후 복구
-│   └── access-control.md             # [권한] KB 단위 RBAC 4단계(viewer/editor/admin/owner)가
-│                                       # REST·검색·MCP 전체에 동일하게 적용된다는 일관성 원칙
+│   ├── access-control.md             # [권한] KB 단위 RBAC 4단계(viewer/editor/admin/owner)가
+│   │                                  # REST·검색·MCP 전체에 동일하게 적용된다는 일관성 원칙
+│   └── resource-authorization.md     # [권한] 그 role이 리소스마다 실제로 어떤 문턱값으로
+│                                      # 걸리는지 — 인증/인가/super-admin 세 축, admin과 owner가
+│                                      # 갈리는 지점, 리소스마다 강제 방식(엔드포인트별/라우터
+│                                      # 분리/단일 게이트/필터링)이 다른 이유, frozen KB 예외
 │
 ├── guides/                           # How-to (Diátaxis) — 제품별 하위 분류, 각 제품의
 │   │                                  # 실제 도메인 모델을 그대로 뼈대로 사용 (KB/Connector/
@@ -59,18 +73,27 @@ docs/
 │   │   └── access-management.md          # Access Management [ENT] — 역할 부여, 초대, 소유권 이전
 │   └── rag-ent/                      # rag-ent-api 확장 능력 단위
 │       ├── sso-and-auth-setup.md         # OIDC/Keycloak 연동
-│       ├── membership-and-invites.md     # 멤버십·초대·소유권 이전
+│       ├── membership-and-invites.md     # 멤버십·초대·소유권 이전, 사용자 프로필 캐시
 │       ├── kb-visibility.md              # public KB
 │       ├── rate-limiting.md              # 사용자별 요청 제한
 │       ├── image-captioning-ocr-fallback.md  # 이미지 캡셔닝, 스캔 문서 OCR 폴백
 │       └── table-layout-parsing.md       # PDF 표 구조 보존 파싱
 │
-├── reference/                        # Reference (Diátaxis) — 정확성 우선, 가능하면 자동생성
-│   ├── rag-api/
-│   │   ├── rest-api.md               # OpenAPI 스펙 기반 자동 생성 권장
-│   │   └── configuration.md
-│   ├── rag-ent/
-│   │   └── rest-api.md
+├── reference/                        # Reference (Diátaxis) — 정확성 우선, 가능하면 자동생성.
+│   │                                  # 제품별 폴더링 대신 콘텐츠 유형별 flat 메뉴로 통합
+│   │                                  # (guides/reference처럼 제품별로 나눌 만큼 API·설정
+│   │                                  # 표면이 제품마다 갈리지 않음 — rag-ent-api가 rag-api
+│   │                                  # 위에 얹는 추가 엔드포인트/설정 정도라 한 문서 안에서
+│   │                                  # [Enterprise 전용] 표시로 구분하는 편이 낫다)
+│   ├── api-guide.md                  # rag-api + rag-ent REST API 통합, OpenAPI 스펙 기반
+│   │                                  # 자동 생성 권장. Enterprise 전용 절은 표시로 구분
+│   ├── configuration.md              # settings.yaml, rag-api 공통 + rag-ent 확장 설정
+│   │                                  # (oidc/authz/smtp/rate_limit 등) 통합
+│   ├── environment-variables.md      # docker/.env 시크릿 변수 전체 — settings.yaml과
+│   │                                  # 담는 값·배포 형식이 달라 configuration.md와 별도 문서로 분리
+│   ├── docker-compose.md             # 컨테이너 구성·이벤트 처리 흐름·기동 의존 순서·오브젝트
+│   │                                  # 스토리지 레이아웃. Core/Enterprise 컨테이너 차이(rag-admin
+│   │                                  # container_name, mailpit 등)를 한 문서에서 [ENT]로 구분
 │   └── cli.md                        # 있다면
 │
 ├── deployment/                       # 별도 섹션으로 분리 추천
@@ -112,18 +135,21 @@ Docusaurus 기반 또는 유사 규모의 멀티 오디언스 OSS 프로젝트 5
 ## 검토 의견
 
 **강점 — 그대로 유지**
-- `getting-started/` + `concepts/` + `guides/<product>/` + `reference/<product>/` 4분할은
-  조사한 5곳 중 가장 근접한 R2R보다도 Diátaxis를 더 정직하게 따른다. concepts를 독립
-  섹션으로 둔 것(공통 패턴 4번과 반대)은 리스크가 아니라, RAG 개념(하이브리드 검색, dedup
-  파이프라인)이 여러 제품에 걸친 설명이 필요하기 때문에 의도적으로 맞는 선택.
-- `guides/`, `reference/`를 제품별 하위 폴더로 나눈 것은 Keycloak(가이드북 자체 분리),
-  RabbitMQ(동사형 오디언스 분리)와 같은 목적(오디언스 혼선 방지)을 Docusaurus의
-  auto-generated sidebar 카테고리 구조로 자연스럽게 구현한다.
+- `getting-started/` + `concepts/` + `guides/<product>/` + `reference/` 4분할은 조사한
+  5곳 중 가장 근접한 R2R보다도 Diátaxis를 더 정직하게 따른다. concepts를 독립 섹션으로
+  둔 것(공통 패턴 4번과 반대)은 리스크가 아니라, RAG 개념(하이브리드 검색, dedup 파이프라인)이
+  여러 제품에 걸친 설명이 필요하기 때문에 의도적으로 맞는 선택.
+- `guides/`를 제품별 하위 폴더로 나눈 것은 Keycloak(가이드북 자체 분리), RabbitMQ(동사형
+  오디언스 분리)와 같은 목적(오디언스 혼선 방지)을 Docusaurus의 auto-generated sidebar
+  카테고리 구조로 자연스럽게 구현한다. `reference/`는 반대로 제품별 폴더 없이 flat하게
+  두는데, rag-ent-api의 API·설정 표면이 rag-api 위에 얹는 확장 수준이라 guides처럼
+  오디언스 자체를 분리할 만큼 크지 않기 때문이다.
 - `deployment/`를 별도 섹션으로 뺀 것은 조사 대상 5곳 중 4곳이 공통으로 쓰는 패턴과 일치.
 
 **보완 검토 필요**
-1. `reference/cli.md`(최상위, "있다면")는 제품별 폴더링 원칙과 어긋난다. rag-api의
-   `rag-api` 콘솔 스크립트가 실제 CLI이므로 `reference/rag-api/cli.md`로 옮기는 것을 권장.
+1. ~~`reference/cli.md`(최상위, "있다면")는 제품별 폴더링 원칙과 어긋난다~~ — reference/를
+   제품별 폴더 대신 `api-guide.md`/`configuration.md` flat 2메뉴로 통합하기로 하면서 이
+   불일치 자체가 해소됨. `cli.md`도 같은 층위의 flat 파일로 그대로 둔다.
 2. `rag-admin`에는 `reference/` 항목이 없다 — rag-admin이 자체 공개 API 없이 rag-api/rag-ent
    API를 소비하는 대시보드라면 의도된 설계이지만, 이 판단을 문서에 명시해두지 않으면 이후
    "왜 rag-admin만 reference가 없냐"는 질문이 반복될 수 있다.
@@ -151,12 +177,14 @@ Docusaurus 기반 또는 유사 규모의 멀티 오디언스 OSS 프로젝트 5
 | `install/06-integrations.md` | `guides/rag-api/` 하위로, 성격에 따라 신규 파일명 부여 |
 | `operations/01-runbook-k8s.md`, `03-runbook-docker-compose.md` | `deployment/production-checklist.md` |
 | `operations/02-observability.md` | `guides/rag-admin/monitoring-and-logs.md` |
-| `overview/01-product.md`, `02-features.md` | `intro.md` |
+| `overview/01-product.md` | `overview/introduction.md` |
+| `overview/02-features.md` | `overview/features.md` (별도 페이지 유지, `intro.md` 통합안 폐기) |
 | `overview/03-architecture.md` | `concepts/architecture.md` |
-| `reference/01-api-guide.md` | `reference/rag-api/rest-api.md` + `reference/rag-ent/rest-api.md` (제품별 분리) |
-| `reference/02-settings-guide.md`, `03-environment-guide.md` | `reference/rag-api/configuration.md` |
+| `reference/01-api-guide.md` | `reference/api-guide.md` (rag-api + rag-ent 통합, Enterprise 전용 절은 표시로 구분) |
+| `reference/02-settings-guide.md` | `reference/configuration.md` (rag-ent 확장 설정 포함 통합) |
+| `reference/03-environment-guide.md` | `reference/environment-variables.md` (별도 문서 유지) |
 | `reference/04-features-catalog.md` | `concepts/` 하위 관련 파일에 흡수 |
-| `reference/05-docker-compose-reference.md` | `deployment/docker-compose.md` |
+| `reference/05-docker-compose-reference.md` | `reference/docker-compose.md` (deployment/ 대신 flat reference/ 유지) |
 | `support/01-support-policy.md` | `support/support-policy.md` |
 | `support/02-releases.md` | `support/releases-and-compatibility.md` |
 | `support/03-known-limitations.md` | `support/known-limitations.md` |

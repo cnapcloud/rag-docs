@@ -60,11 +60,11 @@
 ## 5. 릴리스 채널
 
 - 정기 릴리스: [결정 필요] 권장: 분기 1회 MINOR, 수시 PATCH.
-- 릴리스 노트: 변경 사항, 호환성, 마이그레이션 절차 포함 — [02-releases.md](02-releases.md).
+- 릴리스 노트: 변경 사항, 호환성, 마이그레이션 절차 포함 — [releases-and-compatibility.md](releases-and-compatibility.md).
 - 업그레이드 절차: [01-runbook-k8s.md §4](../operations/01-runbook-k8s.md) 참조.
 
 ## 6. 알려진 제약의 취급
 
-[03-known-limitations.md](03-known-limitations.md)에 명시된 제약은 결함 접수 대상이 아니며,
+[known-limitations.md](known-limitations.md)에 명시된 제약은 결함 접수 대상이 아니며,
 "개선 예정" 항목은 로드맵 일정에 따른다. 명시된 대응 방법으로 해소되지 않는 경우에만 S3
 이상으로 접수한다.

@@ -1,26 +1,32 @@
+---
+sidebar_position: 1
+---
+
 # API Guide
 
-| 적용 대상 | Core / Enterprise |
-|---|---|
-| 기본(1~14장 중 [공통] 표시) | Core, Enterprise 둘 다 |
-| [Enterprise 전용] 표시 절 | Enterprise만 (rag-ent-api가 rag-api를 라이브러리로 임포트해 OIDC 인증 + KB 단위 역할 기반 접근 제어(RBAC)를 추가한 레이어) |
-
-전체 엔드포인트의 요청·응답 형식과 사용법을 정리한다.
+KB 생성부터 문서 업로드, 검색, 커넥터 연동까지 RAG Platform이 제공하는 전체 REST
+엔드포인트를 다룬다. 엔드포인트별로 실제 호출 가능한 curl 예제와 응답 형식을 함께 실어,
+직접 붙여넣어 바로 호출해볼 수 있게 구성했다. 개념적인 설명보다 "지금 무엇을 호출해야
+하는가"에 답하는 것을 목표로 한다.
 
 Base URL: `http://localhost:8000`
 
 대화형 API 문서 (Swagger UI): `http://localhost:8000/docs`
-Enterprise 배포에서는 `/health`, `/ready`를 제외한 모든 경로에 `BearerAuth` 스킴이 자동 부여되어 Authorize 버튼으로 토큰을 넣고 테스트할 수 있다.
 
 ---
 
-## 1. 인증 및 권한 [Enterprise 전용]
+## 1. 인증 및 권한 [ENT]
 
-Core 배포는 인증이 없다 — 아래 내용은 Enterprise 배포에만 해당한다.
+인증 및 권한 관리는 Enterprise에서 제공하는 기능으로 Swagger UI(`/docs`)도 `/health`, `/ready`를
+제외한 모든 경로에 `BearerAuth` 스킴이 자동 부여되어 Authorize 버튼으로 토큰을 넣고 테스트할 수 있다.
+
+사용자별 요청 제한도 함께 적용된다 — 아래 어떤 엔드포인트든 한도를 초과하면 `Retry-After`
+헤더와 함께 HTTP 429를 반환할 수 있다. 규칙·응답 형식은
+[사용자별 요청 제한](../guides/rag-ent/rate-limiting.md) 참고.
 
 ### 1.1 인증 (Authentication)
 
-모든 요청은 `Authorization: Bearer <JWT>` 헤더가 필요하다 (`/health`, `/ready`, `/docs`, `/redoc`, `/openapi.json` 제외). 토큰은 Keycloak이 발급하는 OIDC ID 토큰/액세스 토큰이며, rag-ent-api 자체에는 로그인 엔드포인트가 없다 — Keycloak의 표준 토큰 엔드포인트를 직접 사용한다.
+모든 요청은 `Authorization: Bearer <JWT>` 헤더가 필요하다 (`/health`, `/ready`, `/docs`, `/redoc`, `/openapi.json` 제외). 토큰은 Keycloak이 발급하는 OIDC ID 토큰/액세스 토큰이며, Enterprise API 자체에는 로그인 엔드포인트가 없다 — Keycloak의 표준 토큰 엔드포인트를 직접 사용한다.
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/kb
@@ -41,11 +47,14 @@ JWT의 `groups` claim에 super-admin 그룹명(설정 키 `authz.super_admin_rol
 | `admin` | KB 설정 변경, 멤버 관리 가능 |
 | `owner` | KB 삭제, 소유권 이전 가능 (KB당 1명) |
 
-super-admin은 모든 KB에서 owner로 취급된다. `authz.kb_authz_enabled`가 `false`(6장 시스템 설정)이면 역할 체크 자체가 스킵되고 인증만 요구한다.
+super-admin은 모든 KB에서 owner로 취급된다. `kb_authz_enabled`가 `false`(6.4절 시스템 설정 참고 — `settings.yaml` 키가 아니라 런타임에 토글하는 시스템 설정값)이면 역할 체크 자체가 스킵되고 인증만 요구한다.
+
+Keycloak 클라이언트·그룹 설정, `oidc`/`authz` 섹션의 상세 필드는 [설정](configuration.md#18-oidc-enterprise-전용)과
+[SSO·인증 설정](../guides/rag-ent/sso-and-auth-setup.md)에서 다룬다.
 
 ---
 
-## 2. 상태 확인 [공통]
+## 2. 상태 확인
 
 ```bash
 # 서버 생존 여부
@@ -57,7 +66,7 @@ curl http://localhost:8000/ready
 
 ---
 
-## 3. 지식베이스 (KB) [공통]
+## 3. 지식베이스 (KB)
 
 ### KB 목록 조회
 
@@ -163,9 +172,9 @@ Qdrant 컬렉션 → S3 오브젝트 → Postgres 메타데이터 순으로 삭�
 
 존재하지 않는 KB 삭제 시 HTTP 404 반환.
 
-### KB API — Enterprise 확장 [Enterprise 전용]
+### KB API 확장 [ENT]
 
-Enterprise 배포에서는 위 KB API 전체에 인증 토큰과 아래 최소 역할이 추가로 걸리고, 경로는 동일하지만 응답에 `my_role` 필드가 추가되며 KB 생성자가 자동으로 owner가 된다.
+위 KB API 전체에 인증 토큰과 아래 최소 역할이 추가로 걸리고, 경로는 동일하지만 응답에 `my_role` 필드가 추가되며 KB 생성자가 자동으로 owner가 된다.
 
 | 메서드 | 경로 | 최소 역할 |
 |--------|------|-----------|
@@ -181,9 +190,9 @@ Enterprise 배포에서는 위 KB API 전체에 인증 토큰과 아래 최소 �
 { "knowledge_bases": [{ "kb_id": "kb-99", "kb_name": "지식베이스 99", "my_role": "admin", "status": "active" }] }
 ```
 
-또한 `visibility`(`"private"`/`"public"`, 기본 `"private"`)는 Enterprise가 추가한 필드로 Core 스키마엔 없다 — `POST`(생성 시점) / `PATCH`(기존 KB 전환) 둘 다에서 받는다.
+또한 `visibility`(`"private"`/`"public"`, 기본 `"private"`)는 Enterprise가 추가한 필드로 Core 스키마엔 없다 — `POST`(생성 시점) / `PATCH`(기존 KB 전환) 둘 다에서 받는다. 실제 적용 범위는 [공개 KB(Visibility)](../guides/rag-ent/kb-visibility.md) 참고.
 
-### KB 설정 오버라이드 [공통]
+### KB 설정 오버라이드
 
 KB 단위로 인제스트 파이프라인 설정(`ingestion`/`chunking`/`dedup`)을 전역 `settings.yaml` 값과 다르게 오버라이드할 수 있다. 오버라이드는 KB별로 저장되며, 파이프라인은 문서를 처리할 때마다 전역값 위에 그 KB의 오버라이드를 병합한 유효 설정을 사용한다.
 
@@ -234,7 +243,7 @@ curl http://localhost:8000/api/kb/kb-01/settings/schema
 
 `ingestion.parser_plugins`, `dedup.simhash.ngram`/`num_bands`/`simhash_bits`, `dedup.minhash.user_words_path` 등 배포 타임에 고정되거나 기존 저장된 데이터와의 호환성 때문에 KB별로 바꿀 수 없는 필드는 `overridable: false`로 표시된다 — 이 필드를 오버라이드 저장 API에 보내면 명시적으로 거부된다(조용히 무시하지 않음).
 
-Enterprise 배포는 이 스키마에 자체 확장 필드(`ingestion.image_captioning.*`, `ingestion.pdf_ocr_fallback.*`, `ingestion.table_layout.*`)도 함께 포함해 반환한다.
+이 스키마에 자체 확장 필드(`ingestion.image_captioning.*`, `ingestion.pdf_ocr_fallback.*`, `ingestion.table_layout.*`)도 함께 포함해 반환한다. [ENT]
 
 #### 저장된 오버라이드 조회
 
@@ -284,7 +293,7 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/settings/overrides
 
 응답 (HTTP 200): `{ "kb_id": "kb-01", "status": "overrides_cleared" }`
 
-#### KB 설정 오버라이드 — Enterprise 확장 [Enterprise 전용]
+#### KB 설정 오버라이드 확장 [ENT]
 
 | 메서드 | 경로 | 최소 역할 |
 |--------|------|-----------|
@@ -299,7 +308,10 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/settings/overrides
 
 ---
 
-## 4. KB 멤버십 관리 [Enterprise 전용]
+## 4. KB 멤버십 관리 [ENT]
+
+멤버 등록·초대의 판정 순서, 로그인 시 자동 활성화, SMTP 설정 등 배경은
+[멤버십·초대·소유권 관리](../guides/rag-ent/membership-and-invites.md) 참고.
 
 `GET /api/kb/{kb_id}/members`, `POST /api/kb/{kb_id}/members`, `PATCH /api/kb/{kb_id}/members/{user_id}`, `DELETE /api/kb/{kb_id}/members/{user_id}` — 모두 admin 이상.
 
@@ -377,7 +389,7 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/invites/inv-2 \
 
 ---
 
-## 5. KB 소유권 이전 [Enterprise 전용]
+## 5. KB 소유권 이전 [ENT]
 
 `POST /api/kb/{kb_id}/transfer-owner` — owner 이상 (frozen KB는 super-admin만 통과, 이 경로가 곧 unfreeze 경로이다).
 
@@ -395,7 +407,7 @@ curl -X POST http://localhost:8000/api/kb/kb-01/transfer-owner \
 
 ---
 
-## 6. 사용자·시스템 관리 [Enterprise 전용]
+## 6. 사용자·시스템 관리 [ENT]
 
 ### 6.1 사용자 조회
 
@@ -473,7 +485,7 @@ curl -X PATCH http://localhost:8000/api/admin/config \
 
 ---
 
-## 7. 문서 인덱싱 [공통]
+## 7. 문서 인덱싱
 
 PDF, Word(docx), 텍스트(txt), 마크다운(md), 한글(hwp), HTML(html/htm), reStructuredText(rst) 형식을 지원합니다.
 
@@ -568,7 +580,7 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/docs/{doc_id}
 | `deleting` | 삭제 진행 중 |
 | `deleted` | 삭제 완료 (행은 보존, 검색에서 제외) |
 
-### 문서 API — Enterprise 확장 [Enterprise 전용]
+### 문서 API 확장 [ENT]
 
 `/health`, `/ready`를 제외한 위 문서/커넥터 API는 모두 인증 토큰이 필요하며, 엔드포인트별로 아래 최소 역할이 추가로 요구된다.
 
@@ -594,7 +606,7 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/docs/{doc_id}
 
 ---
 
-## 8. 재인덱싱 / 복구 [공통]
+## 8. 재인덱싱 / 복구
 
 ETag가 동일하면 재인덱싱을 건너뜁니다. `force=true`로 강제 재처리합니다.
 
@@ -668,7 +680,7 @@ queue_worker 모드에서 `running` / `deleting` 문서에 적용하면 asyncio 
 
 ---
 
-## 9. 문서 삭제 [공통]
+## 9. 문서 삭제
 
 `DELETE /api/kb/{kb_id}/docs/{doc_id}`
 
@@ -699,7 +711,7 @@ curl -X DELETE "http://localhost:8000/api/kb/kb-01/docs/{doc_id}?force=true"
 
 ---
 
-## 10. 문서 목록 조회 [공통]
+## 10. 문서 목록 조회
 
 `GET /api/kb/{kb_id}/docs`
 
@@ -772,12 +784,12 @@ curl "http://localhost:8000/api/docs?status=failed&search=report&sort_by=updated
 
 ---
 
-## 11. 커넥터 (Connector) [공통]
+## 11. 커넥터 (Connector)
 
 커넥터는 외부 소스(웹 크롤러, Confluence, GitHub)에서 문서를 자동으로 수집해 KB에 인덱싱합니다.
 파일 직접 업로드(7장)와 달리, 커넥터는 sync 트리거 시 소스를 순회하며 변경된 문서만 재인덱싱합니다.
 
-Enterprise 배포에서는 `/api/connectors` 이하 전체 엔드포인트에 admin 이상 역할이 필요합니다 (7장 "문서 API — Enterprise 확장" 참고).
+`/api/connectors` 이하 전체 엔드포인트에 admin 이상 역할이 필요합니다 (7장 "문서 API 확장" 참고). [ENT]
 
 ### 커넥터 생성
 
@@ -1157,7 +1169,7 @@ curl "http://localhost:8000/api/connectors/b59168c41e5e4a0d/docs?status=failed&s
 
 ---
 
-## 12. 문서 상태 집계 조회 [공통]
+## 12. 문서 상태 집계 조회
 
 처리 중인 문서가 있는지 확인하거나 전체 현황을 파악할 때 사용합니다.
 개별 문서를 전부 조회하지 않고 상태별 카운트만 반환하므로 대량 문서 환경에서도 가볍습니다.
@@ -1230,7 +1242,7 @@ print('active' if active > 0 else 'done', f'(pending={d[\"pending\"]} running={d
 
 ---
 
-## 13. 검색 [공통]
+## 13. 검색
 
 ### hybrid 모드 (기본)
 
@@ -1298,7 +1310,7 @@ curl -X POST http://localhost:8000/api/search \
 - 복수 KB 결과를 합산한 뒤 코사인 유사도 내림차순으로 정렬
 - 최종 결과: 정렬된 전체 candidate 중 상위 `top_k`개 반환
 
-### 검색 API — Enterprise 확장 [Enterprise 전용]
+### 검색 API 확장 [ENT]
 
 `POST /api/search`는 viewer 이상 필요. 요청한 `kb_ids` 중 호출자가 접근 권한이 없는 KB는 검색 전에 자동으로 제외됩니다. super-admin이거나 `kb_authz_enabled=false`이면 필터링이 적용되지 않습니다. 필터링 후 남는 KB가 하나도 없으면 (Core처럼 422가 아니라) 빈 결과로 HTTP 200을 반환합니다.
 
@@ -1310,7 +1322,7 @@ curl -X POST http://localhost:8000/api/search \
 
 ---
 
-## 14. MCP 연결 [공통]
+## 14. MCP 연결
 
 VS Code `.vscode/mcp.json` (워크스페이스 기준):
 
@@ -1338,9 +1350,9 @@ VS Code `.vscode/mcp.json` (워크스페이스 기준):
 }
 ```
 
-### MCP — Enterprise 확장 [Enterprise 전용]
+### MCP 확장 [ENT]
 
-Enterprise 배포는 Core의 MCP 서버와 별개로, rag-ent-api 자체 MCP 서버(`search` / `list_knowledge_bases` / `get_document` 툴)가 동일한 인증·역할 검사를 거쳐 동작합니다.
+Core의 MCP 서버와 별개로, Enterprise 자체 MCP 서버(`search` / `list_knowledge_bases` / `get_document` 툴)가 동일한 인증·역할 검사를 거쳐 동작합니다.
 
 ```json
 {

@@ -1,6 +1,6 @@
 # 데모 시나리오 — 계정별 권한 검증 (RBAC 라이브 검증)
 
-> 근거: [overview/02-features.md](../overview/02-features.md) 중 KB 격리·멤버십 초대 기능을
+> 근거: [Features](../overview/features.md) 중 KB 격리·멤버십 초대 기능을
 > 나레이션이 아니라 실제 두 계정 로그인으로 증명하는 기술 검증용 시나리오.
 
 대상: 내부 QA / 기술 검증. 고객 대상 나레이션 없음 — 실제 조작 순서만 기술한다.

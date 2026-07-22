@@ -1,0 +1,8 @@
+{
+  "position": 0,
+  "label": "Overview",
+  "link": {
+    "type": "generated-index",
+    "description": "RAG Platform이 무엇인지, 무엇을 할 수 있는지 훑어보는 소개와 전체 기능 카탈로그"
+  }
+}

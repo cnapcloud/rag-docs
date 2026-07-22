@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # 접근 제어
@@ -63,11 +63,14 @@ JWT가 유효해도 KB 역할이 부족하면 403이고, KB 역할이 있어도 
 |------|-----------|-------------|
 | `viewer` | 1 | 조회 |
 | `editor` | 2 | 문서 업로드·삭제·재인덱스 |
-| `admin` | 3 | KB 설정·멤버 관리 |
-| `owner` | 4 | KB 삭제·소유권 이전 |
+| `admin` | 3 | KB 메타데이터 수정(이름/설명/태그/visibility)·멤버 관리 |
+| `owner` | 4 | KB 삭제·소유권 이전·인제스트/청킹/dedup 설정 오버라이드 |
 
 역할 검사는 정확히 일치가 아니라 순위 비교다(`ROLE_RANK`, `has_role()`). `admin`은
 `editor`가 할 수 있는 모든 작업도 할 수 있다 — 상위 역할이 하위 역할의 권한을 포함한다.
+
+이 role이 REST의 각 리소스·엔드포인트에 실제로 어떤 문턱값으로 걸리는지, 그리고 admin과
+owner가 왜 갈리는지는 [리소스별 권한 강제](resource-authorization.md)에서 다룬다.
 
 ## REST · 검색 · MCP에 동일하게 적용된다
 

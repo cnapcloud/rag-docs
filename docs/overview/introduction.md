@@ -1,6 +1,6 @@
 ---
-sidebar_position: 0
-title: Overview
+sidebar_position: 1
+title: Introduction
 ---
 
 # RAG Platform
@@ -31,16 +31,19 @@ title: Overview
 - **고급 문서 이해를 켤 수 있다** — (Enterprise) 이미지 캡셔닝, 스캔 문서 OCR 폴백, PDF 표
   구조 보존 파싱을 KB별로 켜고 끌 수 있다.
 
+전체 기능을 한눈에 훑어보려면 [Features](features.md)를 참고한다 — `[Core]`는 기본
+배포부터 제공되는 기능, `[ENT]`는 Enterprise 배포에서 추가로 제공되는 기능이다.
+
 ## 2. 핵심 빌딩 블록
 
 RAG Platform을 이해하려면 아래 네 가지 개념부터 잡고 가는 게 빠르다.
 
 | 개념 | 정의 | 더 보기 |
 |------|------|---------|
-| **Knowledge Base (KB)** | 문서를 격리하는 기본 단위. 문서뿐 아니라 청킹·중복감지 설정 오버라이드, (Enterprise) 접근 권한까지 전부 KB 단위로 걸린다 | [아키텍처 개요](concepts/architecture.md) |
-| **Connector** | 웹·Confluence·GitHub 같은 외부 소스에서 문서를 자동·증분 수집하는 파이프라인 | [커넥터 가이드](guides/rag-api/connectors.md) |
-| **Document** | 업로드·수집된 문서 한 건. `uploading → pending → running → indexed` 등 상태를 거치며, 처리 중에는 충돌 방지를 위해 일부 요청이 차단된다 | [문서 상태 흐름](concepts/document-lifecycle.md) |
-| **Search** | dense+sparse 하이브리드 결과를 RRF로 병합하고 선택적으로 리랭킹하는 질의 경로 | [검색·인제스트 흐름](concepts/data-flow.md) |
+| **Knowledge Base (KB)** | 문서를 격리하는 기본 단위. 문서뿐 아니라 청킹·중복감지 설정 오버라이드, (Enterprise) 접근 권한까지 전부 KB 단위로 걸린다 | [아키텍처 개요](../concepts/architecture.md) |
+| **Connector** | 웹·Confluence·GitHub 같은 외부 소스에서 문서를 자동·증분 수집하는 파이프라인 | [커넥터 가이드](../guides/rag-api/connectors.md) |
+| **Document** | 업로드·수집된 문서 한 건. `uploading → pending → running → indexed` 등 상태를 거치며, 처리 중에는 충돌 방지를 위해 일부 요청이 차단된다 | [문서 상태 흐름](../concepts/document-lifecycle.md) |
+| **Search** | dense+sparse 하이브리드 결과를 RRF로 병합하고 선택적으로 리랭킹하는 질의 경로 | [검색·인제스트 흐름](../concepts/data-flow.md) |
 
 ## 3. 차별점
 
@@ -49,14 +52,14 @@ RAG Platform을 이해하려면 아래 네 가지 개념부터 잡고 가는 게
   빌더를 내장하지 않는 것은 의도된 비범위다.
 - **R2R과 가장 가깝지만 완결형이다** — R2R(SciPhi)이 같은 "API-first 검색 인프라" 축의
   아키텍처상 가장 가까운 비교 대상이다. RAG Platform은 여기에 KB 단위 RBAC·SSO를 갖춘
-  Enterprise 배포, 완전 로컬 추론 기반 표/OCR 처리, 관리 콘솔(rag-admin)까지 기본 포함한다.
-- **하나의 코드베이스, 두 가지 배포 형태** — **Core**(rag-api + rag-admin, 인증 없는 내부망
-  전용 구성)와 **Enterprise**(rag-ent-api + rag-admin ENT 모드 + Keycloak 연동)는 같은
-  아키텍처에서 API 이미지와 설정만 다르다. Core로 시작해 인증·권한이 필요해지면 Enterprise로
-  전환하면 된다.
+  Enterprise 배포, 완전 로컬 추론 기반 표/OCR 처리, 관리 콘솔까지 기본 포함한다.
+- **하나의 코드베이스, 두 가지 배포 형태** — **Core**(인증 없는 내부망 전용 구성)와
+  **Enterprise**(Keycloak 연동 SSO + KB 단위 RBAC 추가)는 같은 아키텍처에서 API 이미지와
+  설정만 다르다. 관리 콘솔도 같은 빌드가 두 모드를 모두 지원한다. Core로 시작해 인증·권한이
+  필요해지면 Enterprise로 전환하면 된다.
 
 ## 4. 더 깊이 보기
 
-- 구조·인프라·데이터 흐름·상태·권한을 하나씩 이해하고 싶다면 → [concepts/](concepts/architecture.md)
-- 지금 바로 설치해보고 싶다면 → [getting-started/quickstart.md](getting-started/quickstart.md)
-- 특정 기능(KB 관리, 커넥터, 파이프라인, 검색, MCP 등)을 바로 다루고 싶다면 → [guides/](guides/rag-api/kb.md)
+- 구조·인프라·데이터 흐름·상태·권한을 하나씩 이해하고 싶다면 → [concepts/](../concepts/architecture.md)
+- 지금 바로 설치해보고 싶다면 → [getting-started/quickstart.md](../getting-started/quickstart.md)
+- 특정 기능(KB 관리, 커넥터, 파이프라인, 검색, MCP 등)을 바로 다루고 싶다면 → [guides/](../guides/rag-api/kb.md)

@@ -74,12 +74,12 @@ const config = {
           src: 'img/logo.svg',
         },
         items: [
-          {to: '/overview', label: 'Overview', position: 'left'},
+          {to: '/overview/introduction', label: 'Overview', position: 'left'},
           {to: '/getting-started/quickstart', label: 'Getting Started', position: 'left'},
           {to: '/concepts/architecture', label: 'Concepts', position: 'left'},
           {to: '/guides/rag-api/kb', label: 'Guides', position: 'left'},
-          {to: '/reference/01-api-guide', label: 'Reference', position: 'left'},
-          {to: '/support/01-support-policy', label: 'Support', position: 'left'},
+          {to: '/reference/api-guide', label: 'Reference', position: 'left'},
+          {to: '/support/support-policy', label: 'Support', position: 'left'},
           {
             href: 'https://github.com/cnapcloud/rag-docs',
             label: 'GitHub',
@@ -93,19 +93,19 @@ const config = {
           {
             title: 'Docs',
             items: [
-              {label: 'Overview', to: '/overview'},
+              {label: 'Overview', to: '/overview/introduction'},
               {label: 'Getting Started', to: '/getting-started/quickstart'},
               {label: 'Concepts', to: '/concepts/architecture'},
               {label: 'Guides', to: '/guides/rag-api/kb'},
-              {label: 'Reference', to: '/reference/01-api-guide'},
+              {label: 'Reference', to: '/reference/api-guide'},
             ],
           },
           {
             title: 'Support',
             items: [
-              {label: 'Support Policy', to: '/support/01-support-policy'},
-              {label: 'Release Notes', to: '/support/02-releases'},
-              {label: 'Known Limitations', to: '/support/03-known-limitations'},
+              {label: 'Support Policy', to: '/support/support-policy'},
+              {label: 'Release Notes', to: '/support/releases-and-compatibility'},
+              {label: 'Known Limitations', to: '/support/known-limitations'},
             ],
           },
           {
