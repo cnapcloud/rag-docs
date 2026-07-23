@@ -172,8 +172,17 @@ image:
 값을 원하는 버전으로 바꾸고 아래처럼 반영한다(또는 GitOps 파이프라인으로):
 
 ```bash
-helm upgrade --install rag ./helm -n rag --atomic -f helm/values.yaml -f values.yaml
+cd k8s
+helm upgrade --install rag oci://ghcr.io/cnapcloud/charts/rag-platform \
+  --version <차트 버전> \
+  -n rag -f values.yaml
 ```
+
+패키지가 public이라 별도 로그인은 필요 없다. `--atomic`을 붙이지 않으면 실패 시 자동
+롤백되지 않는다 — 실패하면 원인을 바로잡고 `helm uninstall rag -n rag` 후 다시 설치하거나,
+스키마 변경이 없었다면 A.4.4의 `helm rollback`으로 되돌린다. 동일한 흐름을 감싼
+`make upgrade`(및 `check-cnpg`로 cnpg-operator 존재를 먼저 확인하는 것)를
+`k8s/Makefile`에서도 쓸 수 있다([kubernetes.md](kubernetes.md) §4 참조).
 
 `imagePullPolicy`는 고정 태그를 쓰는 한 `IfNotPresent`로 충분하다 — `Always`는 `:latest`처럼
 태그가 재사용될 때만 의미가 있으므로, 고정 태그로 운영한다면 `values.yaml`에서
@@ -184,16 +193,16 @@ helm upgrade --install rag ./helm -n rag --atomic -f helm/values.yaml -f values.
 1. **업그레이드 직전 Postgres 백업(A.2.2) 필수 수행** — DB 스키마 마이그레이션은 API 서버
    기동 시 자동 적용되며 자동 롤백되지 않는다.
 2. 한 번에 하나의 버전 단계만 올린다 (여러 버전을 건너뛰지 않음).
-3. `values.yaml`의 `image.tag`를 목표 버전으로 변경 후 `helm upgrade --install`(A.4.2)로 적용.
+3. `values.yaml`의 `image.tag`를 목표 버전으로 변경 후 A.4.2의 명령으로 적용.
 4. [첫 KB와 검색](../getting-started/first-kb-and-query.md) 스모크 테스트 수행.
 
 #### A.4.4 롤백 절차
 
 스키마 마이그레이션이 없는 패치 업그레이드라면:
 
-1. `values.yaml`의 `image.tag`를 직전 버전으로 되돌리고 `helm upgrade --install`(A.4.2)로
-   재적용한다. 또는 `helm rollback rag <REVISION> -n rag`로 직전 release revision으로 바로
-   되돌릴 수 있다 — `helm history rag -n rag`로 revision 번호를 확인한다(마찬가지로 스키마
+1. `values.yaml`의 `image.tag`를 직전 버전으로 되돌리고 A.4.2의 명령으로 재적용한다.
+   또는 `helm rollback rag <REVISION> -n rag`로 직전 release revision으로 바로 되돌릴 수
+   있다 — `helm history rag -n rag`로 revision 번호를 확인한다(마찬가지로 스키마
    마이그레이션이 없는 경우에만 안전하다).
 2. `/ready` 및 [첫 KB와 검색](../getting-started/first-kb-and-query.md) 스모크 테스트로 정상 동작 확인.
 

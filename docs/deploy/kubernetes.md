@@ -5,9 +5,11 @@ sidebar_position: 2
 # Kubernetes 설치
 
 운영 환경(k8s 운영 경험 전제)에 Helm 차트로 설치하는 표준 절차를 다룬다. 배포 매니페스트는
-단일 umbrella Helm 차트(`k8s/helm/`)로 제공된다 — rag-api/rag-admin은 이 차트 자체
-템플릿이고, 나머지 인프라 컴포넌트(Postgres, Redis, MinIO, Qdrant, Dagster, 외부 Ollama
-연결, SMTP 평가용 Mailpit, Reloader)는 전부 서브차트 의존성이다.
+단일 umbrella Helm 차트(`k8s/helm/`)로 제공되며, `ghcr.io/cnapcloud/charts/rag-platform`
+OCI 레지스트리에 공개(public) 패키지로 게시되어 있다 — 설치·업그레이드에는 별도 로그인이나
+자격증명이 필요 없다. 이 문서는 `helm upgrade --install`로 OCI 참조를 직접 설치하는 방법을
+기준으로 설명한다(§4). 저장소의 `k8s/Makefile`에도 동일한 동작을 하는
+`install`/`upgrade`/`uninstall` 타깃이 있어 편의상 쓸 수 있다.
 
 ---
 
@@ -15,9 +17,10 @@ sidebar_position: 2
 
 ```
 k8s/
+  Makefile                  # install/upgrade/uninstall을 감싼 선택적 편의 타깃 (아래 표 참조)
   values.yaml.example      # 실값으로 채워 values.yaml로 복사 (gitignored) — secrets override
   helm/
-    Chart.yaml               # 이 차트 메타데이터 + 의존성 목록
+    Chart.yaml               # 차트 메타데이터(이름: rag-platform) + 의존성 목록
     values.yaml              # 기본값 (체크인) — 단일 환경 기준
     templates/                # rag-api + rag-admin 리소스 (이 차트 자체 템플릿)
     charts/
@@ -25,6 +28,19 @@ k8s/
       minio-jobs/              # 로컬 서브차트 — 버킷 부트스트랩 Job + 백업 미러 CronJob
       ollama/                  # 로컬 서브차트 — 외부 Ollama 호스트로 향하는 Service+EndpointSlice
 ```
+
+### Makefile 타깃
+
+| 타깃 | 용도 |
+|------|------|
+| `install` | 최초 설치 — `helm upgrade --install rag oci://.../rag-platform ... -f values.yaml`을 감싼 편의 타깃(§4는 이 명령을 직접 보여준다) |
+| `upgrade` | 업그레이드 — 동일 방식, 이미 존재하는 release에 적용 |
+| `uninstall` | 제거 — `helm uninstall rag -n rag` |
+| `check-cnpg` | `install`/`upgrade`의 선행 타깃 — `cnpg-system` 네임스페이스 존재 여부를 먼저 확인하고, 없으면 안내 메시지와 함께 즉시 실패 |
+
+이미 운영 중인 Postgres/Redis/MinIO/SMTP가 있으면 해당 서브차트를 `<alias>.enabled: false`로
+꺼서 배포를 생략하고, `values.yaml`의 `settings:` 블록(§3.2)에 접속 정보만 채워 넣으면 된다
+— 이후 절차는 두 경우 모두 동일하다.
 
 ### 의존성 (서브차트)
 
@@ -41,9 +57,8 @@ k8s/
 | `dagster` | upstream | webserver / daemon / user-code |
 | `reloader` | upstream | ConfigMap/Secret 변경 시 Deployment 자동 재기동 |
 
-이미 운영 중인 Postgres/Redis/MinIO/SMTP가 있으면 해당 서브차트를 `<alias>.enabled: false`로
-꺼서 배포를 생략하고, `values.yaml`의 `settings:` 블록(§3.2)에 접속 정보만 채워 넣으면 된다
-— 이후 절차는 두 경우 모두 동일하다.
+설치에 쓰는 OCI 참조는 이미 서브차트가 전부 번들된 상태로 게시되어 있으므로,
+`helm dependency update` 같은 별도 빌드 단계가 필요 없다.
 
 외부 준비(차트에 포함되지 않음):
 
@@ -71,7 +86,7 @@ Redis, MinIO, SMTP처럼 이 차트가 직접 띄울 수도, 기존 걸 재사�
 
 이 차트는 단일 네임스페이스 설치를 기준으로 만들어져 있어(서브차트 리소스가 대부분
 `.Release.Namespace`를 참조), 네임스페이스를 분리하려면 **Helm release를 두 개로
-나눈다**:
+나눈다**(각 release마다 release 이름/네임스페이스를 직접 다르게 지정한다):
 
 1. **인프라 release** — `cnpg-cluster`/`redis-ha`/`minio`/`mailpit`/`reloader`만
    `enabled: true`로 두고 나머지는 `false`로 꺼서 `infra` 같은 별도 네임스페이스에 설치.
@@ -88,17 +103,13 @@ Redis, MinIO, SMTP처럼 이 차트가 직접 띄울 수도, 기존 걸 재사�
 
 1. **이미지 접근**: 컨테이너 레지스트리에서 제품 이미지(rag-api, rag-admin) pull 가능
    여부 확인. 배포 시 `image.tag`를 **버전 태그로 고정**한다(`latest` 사용 금지 — 롤백
-   불가). private 레지스트리라면 `imagePullSecrets`용 Secret을 먼저 만든다:
+   불가). Core `rag-api` 이미지는 공개 레지스트리라 별도 인증이 필요 없다 — private
+   레지스트리(Enterprise `rag-ent-api`)를 쓰는 경우는 문서 끝의
+   [참고: private 레지스트리 이미지 사용 시](#참고-private-레지스트리-이미지-사용-시)를
+   본다.
 
-   ```bash
-   kubectl create secret docker-registry ghcr-pull-token --docker-server=ghcr.io \
-     --docker-username=<user> --docker-password=<token> -n rag
-   ```
-
-   그다음 `values.yaml`에 `imagePullSecrets: [{name: ghcr-pull-token}]`을 채운다.
-
-2. **네임스페이스**: `helm upgrade --install ... --create-namespace`가 자동 생성하므로
-   별도 생성이 필요 없다(대규모 구성으로 분리한다면 §1의 네임스페이스 전략을 먼저
+2. **네임스페이스**: §4의 `helm upgrade --install ... --create-namespace`가 자동 생성
+   하므로 별도 생성이 필요 없다(대규모 구성으로 분리한다면 §1의 네임스페이스 전략을 먼저
    확인한다).
 
 3. **cnpg-operator 설치 (필수, 별도 release)**: 이 차트의 의존성이 아니다. 클러스터당
@@ -109,9 +120,10 @@ Redis, MinIO, SMTP처럼 이 차트가 직접 띄울 수도, 기존 걸 재사�
    helm install cnpg-operator cnpg/cloudnative-pg -n cnpg-system --create-namespace
    ```
 
-   오퍼레이터가 완전히 뜨기 전에 `Cluster` CR을 같은 release에 넣으면 webhook이 없어
-   생성이 실패하고, `--atomic`이 오퍼레이터 Deployment까지 통째로 롤백해버린다 — 그래서
-   항상 별도 release로 먼저 설치해야 한다.
+   이 단계를 건너뛰고 바로 설치하면 `Cluster` CR 생성이 webhook 없이 실패해 한참 뒤에야
+   문제가 드러난다 — §4에서 설치 전에 `kubectl get namespace cnpg-system`으로 먼저
+   확인한다. (`k8s/Makefile`의 `install`/`upgrade` 타깃을 쓰면 `check-cnpg`가 이 확인을
+   자동으로 해준다.)
 
 4. **데이터 계층**: 두 가지 방법 중 하나를 선택한다.
 
@@ -158,8 +170,10 @@ Redis, MinIO, SMTP처럼 이 차트가 직접 띄울 수도, 기존 걸 재사�
 ```bash
 cd k8s
 cp values.yaml.example values.yaml   # gitignored — 실값으로 채운다
-helm dependency update ./helm
 ```
+
+설치만 하는 경우 이게 전부다 — §4에서 설치할 OCI 차트는 이미 서브차트까지 번들된 상태로
+게시되어 있으므로, `helm dependency update` 같은 별도 빌드 단계가 필요 없다.
 
 ### 3.2 `settings.yaml` (rag-api 설정 — `helm/values.yaml`의 `settings:` 블록)
 
@@ -206,11 +220,11 @@ Secret으로 생성되고, rag-api 컨테이너에는 환경변수 오버라이�
 섞지 않는다.
 
 - **차트가 관리 (기본)**: `values.yaml.example`을 `values.yaml`(gitignored)로 복사해
-  실값을 채우고 `-f values.yaml`로 레이어링한다(§4). `secrets:` 맵에 있는 키마다 Secret이
-  생성/갱신된다.
-- **기존/사전 생성 Secret 사용**: 해당 키를 맵에서 빼거나(또는 `values.yaml`을 아예
-  레이어링하지 않고) 아래처럼 직접 한 번 생성한다 — Helm은 이 방식으로 만든 Secret을
-  건드리거나 소유권을 가져가지 않는다.
+  실값을 채운다(§3.1) — §4의 `helm upgrade --install` 명령에서 `-f values.yaml`로 이
+  파일을 레이어링한다. `secrets:` 맵에 있는 키마다 Secret이 생성/갱신된다.
+- **기존/사전 생성 Secret 사용**: 해당 키를 맵에서 빼거나(또는 `values.yaml`을 채우지
+  않고) 아래처럼 직접 한 번 생성한다 — Helm은 이 방식으로 만든 Secret을 건드리거나
+  소유권을 가져가지 않는다.
 
   ```bash
   kubectl create secret generic rag-api-credentials -n rag \
@@ -238,24 +252,45 @@ Docker Compose 배포([Quick Start](../getting-started/quickstart.md))는 `docke
 
 ## 4. 배포
 
-순서를 지켜야 한다 — §2에서 cnpg-operator를 먼저 설치하지 않으면 `cnpg-cluster`의
-`Cluster` CR 생성이 webhook 없이 실패하고, 데이터 계층/Ollama보다 rag-api가 먼저 준비되면
-`/ready`가 계속 내려간다. cnpg-operator를 먼저 설치했다면, 이후는 **의존성 순서를 Helm이
-알아서 처리**하므로(Chart.yaml 선언 순서 + 각 리소스의 Helm 훅) `helm upgrade --install`
-한 번이면 된다 — 별도 컴포넌트별 순차 적용이 필요 없다.
+§2에서 cnpg-operator를 먼저 설치했는지 확인한다:
+
+```bash
+kubectl get namespace cnpg-system   # 없으면 §2의 3번 항목부터 진행
+```
+
+그 외 컴포넌트 간 순서는 Helm이 알아서 처리하므로(Chart.yaml 선언 순서 + 각 리소스의 Helm
+훅) OCI 참조를 바로 설치하는 명령 한 번이면 된다 — 별도로 `.tgz`를 내려받아 둘 필요 없이
+`helm upgrade --install`이 레지스트리에서 직접 pull한다. 게시된 버전 목록은
+[GHCR 패키지 페이지](https://github.com/orgs/cnapcloud/packages/container/package/charts%2Frag-platform)에서
+확인하거나 배포 시 안내받은 버전을 사용한다.
 
 ```bash
 cd k8s
-helm dependency update ./helm
-helm lint ./helm -f helm/values.yaml -f values.yaml
-helm template rag ./helm -n rag -f helm/values.yaml -f values.yaml    # 렌더링 결과 먼저 확인 (dry run)
-helm upgrade --install rag ./helm -n rag --create-namespace --atomic \
-  -f helm/values.yaml -f values.yaml
+helm upgrade --install rag oci://ghcr.io/cnapcloud/charts/rag-platform \
+  --version 0.1.0 \
+  -n rag --create-namespace \
+  -f values.yaml
 ```
 
-`--atomic`은 설치 실패 시 이번에 생성된 리소스를 전부 롤백한다 — 부분 성공 상태로 남지
-않는다. 두 번째 환경이 필요하면 `-f values-prod.yaml`을 `values.yaml` 뒤에 추가로
-레이어링한다.
+패키지가 public이므로(§1) 별도 인증이 필요 없다. 이 차트는 이미 `helm/values.yaml`에
+해당하는 기본값을 포함하고 있으므로, 직접 채운 `values.yaml`(§3.3의 실제 시크릿)만 `-f`로
+얹으면 된다 — `helm/values.yaml`을 따로 갖고 있거나 `-f`로 다시 넘길 필요는 없다.
+
+업그레이드도 동일한 형태다 — `--version`만 새 값으로 바꿔 같은 명령을 다시 실행한다:
+
+```bash
+helm upgrade --install rag oci://ghcr.io/cnapcloud/charts/rag-platform \
+  --version 0.2.0 \
+  -n rag -f values.yaml
+```
+
+`--atomic`을 붙이지 않으면 설치 도중 실패해도 자동으로 롤백되지 않고 release가
+`pending-install`/`failed` 상태로 남을 수 있다. 흔한 원인은 `values.yaml`(§3.3의 실제
+시크릿)을 채우지 않은 채로 실행한 경우다 — Secret이 비어 있으면 여러 파드가
+`CreateContainerConfigError`로 멈추고, MinIO 버킷 부트스트랩 post-install 훅이 그 상태로
+무한 대기하면서 `helm upgrade --install` 자체도 멈춘다. 이 경우 값을 바로잡은 뒤
+`helm uninstall rag -n rag`로 정리하고 다시 설치한다. 이 실패 모드를 자동 롤백으로 바꾸려면
+`--atomic`을 직접 추가한다.
 
 제거:
 
@@ -263,12 +298,15 @@ helm upgrade --install rag ./helm -n rag --create-namespace --atomic \
 helm uninstall rag -n rag
 ```
 
+`k8s/Makefile`에는 위 흐름을 그대로 감싼 `install`/`upgrade`/`uninstall` 타깃(및 실행 전
+`cnpg-system` 존재를 자동 확인하는 `check-cnpg`)이 있다 — 버전 번호를 직접 다루지 않고
+싶다면 `make install`/`make upgrade`/`make uninstall`을 대신 쓴다(§1 Makefile 타깃 표
+참고).
+
 ### 트러블슈팅 — `<resource> already exists`
 
 release가 "존재하지 않는데" 설치/업그레이드 시 이 에러가 나면, 이전 시도가 중간에 실패하며
-release 기록 없이 리소스만 남긴 경우다(그래서 위 설치 명령이 `--atomic`을 쓴다 — 실패한
-시도가 스스로 롤백되어 다음 재시도와 충돌하지 않도록). 충돌하는 오브젝트를 지우고
-재시도한다:
+release 기록 없이 리소스만 남긴 경우다. 충돌하는 오브젝트를 지우고 재시도한다:
 
 ```bash
 kubectl delete role dagster-role -n rag
@@ -306,8 +344,6 @@ dagster webserver UI의 Ingress도 dagster 서브차트 values(`dagster.ingress`
 
 ## 6. 배포 확인
 
-- `helm upgrade --install` 전에 `helm lint`/`helm template`(§4)으로 렌더링 결과를 먼저
-  확인한다.
 - `helm status rag -n rag`, `kubectl -n rag get pods` — 전체 Running, readiness 통과.
 - rag-api의 liveness(`/health`)·readiness(`/ready`) 프로브는 차트에 포함되어 있다.
   readiness 실패 시 `/ready` 응답의 `checks`에서 실패 인프라를 식별한다.
@@ -342,3 +378,18 @@ dagster webserver UI의 Ingress도 dagster 서브차트 values(`dagster.ingress`
 | LibreChat 등 챗 서비스 연동 (핵심 시나리오) | LibreChat 연동 가이드 (마이그레이션 예정) |
 | 관측 구성 (Langfuse·Prometheus·Grafana) | [observability.md](observability.md) |
 | 설치 검증 | [첫 KB와 검색](../getting-started/first-kb-and-query.md) |
+
+## 참고: private 레지스트리 이미지 사용 시
+
+Core `rag-api` 이미지는 공개 레지스트리에 있어 별도 인증 없이 pull된다. Enterprise
+구성에서 private 레지스트리의 `rag-ent-api` 이미지를 쓰는 경우에만 아래 절차가 필요하다
+(§2의 1번 항목 참고).
+
+`imagePullSecrets`용 Secret을 먼저 만든다:
+
+```bash
+kubectl create secret docker-registry ghcr-pull-token --docker-server=ghcr.io \
+  --docker-username=<user> --docker-password=<token> -n rag
+```
+
+그다음 `values.yaml`에 `imagePullSecrets: [{name: ghcr-pull-token}]`을 채운다.
