@@ -21,13 +21,13 @@ const FeatureList = [
     title: '설치',
     Icon: InstallIcon,
     description: '요구사항, Quick Start, k8s 설치, Enterprise 설정, 설치 검증.',
-    to: '/install/01-requirements',
+    to: '/deploy/requirements',
   },
   {
     title: '운영',
     Icon: OperationsIcon,
     description: '백업/복구/업그레이드 runbook과 관측 구성.',
-    to: '/operations/01-runbook-k8s',
+    to: '/deploy/runbook',
   },
   {
     title: '레퍼런스',

@@ -90,4 +90,4 @@ Claude Code, VS Code 등 MCP를 지원하는 클라이언트가 있다면 검색
 | 커넥터로 문서를 자동 수집하고 싶다 | [guides/rag-api/connectors.md](../guides/rag-api/connectors.md) |
 | KB마다 청킹·중복감지 설정을 다르게 주고 싶다 | [guides/rag-api/kb.md](../guides/rag-api/kb.md) |
 | SSO·권한 제어가 필요하다 (Enterprise) | [guides/rag-ent/sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md) |
-| 운영 환경(k8s)에 제대로 배포하고 싶다 | [deployment/kubernetes.md](../deployment/kubernetes.md) |
+| 운영 환경(k8s)에 제대로 배포하고 싶다 | [kubernetes.md](../deploy/kubernetes.md) |

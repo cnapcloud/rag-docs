@@ -10,7 +10,7 @@ docker-compose로 배포해 제품을 평가할 수 있다.
 이 문서는 **설치와 기동**까지만 다룬다. 설치가 끝난 뒤 KB를 만들고 문서를 올려 실제로
 검색해보는 흐름은 [첫 KB와 검색](first-kb-and-query.md)에서 이어서 진행한다. 인증(SSO)·접근
 제어를 포함한 Enterprise 구성 평가는 [guides/rag-ent/sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md),
-운영 환경 설치는 [deployment/kubernetes.md](../deployment/kubernetes.md)를 참고한다.
+운영 환경 설치는 [kubernetes.md](../deploy/kubernetes.md)를 참고한다.
 
 ---
 
@@ -25,7 +25,7 @@ docker-compose로 배포해 제품을 평가할 수 있다.
 | Python | 소스 빌드 기준 3.12 (3.13 이상 미지원 — [알려진 제약](../support/known-limitations.md) 참조) |
 
 규모별 상세 사이징 기준(문서량·동시 사용자별 하드웨어 산정)은
-[deployment/production-checklist.md](../deployment/production-checklist.md)를 참고한다.
+[requirements.md](../deploy/requirements.md)를 참고한다.
 
 ## 2. 임베딩 서버(Ollama) 준비
 
@@ -113,5 +113,5 @@ docker compose down -v         # 중지 + 데이터 삭제
 |-----------|------|
 | KB 생성 → 문서 업로드 → 검색 (튜토리얼) | [first-kb-and-query.md](first-kb-and-query.md) |
 | SSO·KB 접근제어 포함 Enterprise 평가 | [guides/rag-ent/sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md) |
-| 운영 환경(k8s) 설치 | [deployment/kubernetes.md](../deployment/kubernetes.md) |
+| 운영 환경(k8s) 설치 | [kubernetes.md](../deploy/kubernetes.md) |
 | 커넥터(Confluence·GitHub·웹) 설정 | [guides/rag-api/connectors.md](../guides/rag-api/connectors.md) |

@@ -11,7 +11,8 @@
 
 - 제품 구성요소(RAG API, Enterprise 레이어, 관리 콘솔, 제공 배포 매니페스트)의 결함 수정
 - 설치·업그레이드·설정에 대한 기술 문의
-- 공식 문서([설치 가이드](../install/02-quickstart.md), [운영 runbook](../operations/01-runbook-k8s.md)) 기준 운영 이슈 지원
+- 공식 문서([Quick Start](../getting-started/quickstart.md), [Kubernetes 설치](../deploy/kubernetes.md),
+  [Runbook](../deploy/runbook.md)) 기준 운영 이슈 지원
 - 보안 취약점 패치
 
 ### 제외 (별도 계약 대상)
@@ -38,9 +39,8 @@
 
 | 채널 | 용도 | 비고 |
 |------|------|------|
-| [결정 필요 — 이슈 트래커/포털 주소] | 모든 문의·장애 접수 (기본 채널) | 심각도 지정하여 접수 |
-| [결정 필요 — 이메일] | 포털 접근 불가 시 | |
-| [결정 필요 — 긴급 연락처] | S1 전용 | Enterprise 계약 |
+| rag-api GitHub Issues | 모든 문의·장애 접수 (기본 채널) | 심각도 지정하여 접수 |
+| 긴급 연락처 - 계약 시 제공 | S1 전용 | Enterprise 계약 |
 
 ### 접수 시 포함 정보
 
@@ -61,7 +61,6 @@
 
 - 정기 릴리스: [결정 필요] 권장: 분기 1회 MINOR, 수시 PATCH.
 - 릴리스 노트: 변경 사항, 호환성, 마이그레이션 절차 포함 — [releases-and-compatibility.md](releases-and-compatibility.md).
-- 업그레이드 절차: [01-runbook-k8s.md §4](../operations/01-runbook-k8s.md) 참조.
 
 ## 6. 알려진 제약의 취급
 

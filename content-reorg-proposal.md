@@ -17,7 +17,7 @@ docs/
 ├── getting-started/                  # Tutorial (Diátaxis) — installation.md 없음: quickstart와
 │   │                                  # 겹치지 않는 고유 튜토리얼 콘텐츠가 없어서 제외.
 │   │                                  # 기존 install/01-requirements.md(사이징 표, Reference
-│   │                                  # 성격)는 deployment/production-checklist.md로 이동
+│   │                                  # 성격)는 deploy/requirements.md로 이동
 │   ├── quickstart.md                 # docker-compose로 5분 안에 띄우기
 │   └── first-kb-and-query.md         # KB 생성 → 문서 업로드 → 검색까지 엔드투엔드
 │
@@ -77,7 +77,8 @@ docs/
 │       ├── kb-visibility.md              # public KB
 │       ├── rate-limiting.md              # 사용자별 요청 제한
 │       ├── image-captioning-ocr-fallback.md  # 이미지 캡셔닝, 스캔 문서 OCR 폴백
-│       └── table-layout-parsing.md       # PDF 표 구조 보존 파싱
+│       ├── table-layout-parsing.md       # PDF 표 구조 보존 파싱
+│       └── librechat-integration.md      # LibreChat 연동(OIDC 로그인, MCP 등록, 권한 전달)
 │
 ├── reference/                        # Reference (Diátaxis) — 정확성 우선, 가능하면 자동생성.
 │   │                                  # 제품별 폴더링 대신 콘텐츠 유형별 flat 메뉴로 통합
@@ -91,17 +92,35 @@ docs/
 │   │                                  # (oidc/authz/smtp/rate_limit 등) 통합
 │   ├── environment-variables.md      # docker/.env 시크릿 변수 전체 — settings.yaml과
 │   │                                  # 담는 값·배포 형식이 달라 configuration.md와 별도 문서로 분리
-│   ├── docker-compose.md             # 컨테이너 구성·이벤트 처리 흐름·기동 의존 순서·오브젝트
-│   │                                  # 스토리지 레이아웃. Core/Enterprise 컨테이너 차이(rag-admin
-│   │                                  # container_name, mailpit 등)를 한 문서에서 [ENT]로 구분
-│   └── cli.md                        # 있다면
+│   └── docker-compose.md             # 컨테이너 구성·이벤트 처리 흐름·기동 의존 순서·오브젝트
+│                                      # 스토리지 레이아웃. Core/Enterprise 컨테이너 차이(rag-admin
+│                                      # container_name, mailpit 등)를 한 문서에서 [ENT]로 구분
 │
-├── deployment/                       # 별도 섹션으로 분리 추천
-│   ├── kubernetes.md
-│   ├── docker-compose.md
-│   └── production-checklist.md
+├── deploy/                           # 사이드바 라벨 "Deploy" (Conductor OSS 선례, 82행 조사
+│   │                                  # 표 참고) — install/operations 콘텐츠를 guides/reference로
+│   │                                  # 흩지 않고 이 섹션 하나로 통합 (guides/rag-admin에
+│   │                                  # monitoring-and-logs.md 계획이 없어 observability도 흡수).
+│   │                                  # docker-compose.md는 넣지 않음 — install/01-requirements.md의
+│   │                                  # 배포 프로파일 표에서 docker-compose는 PoC/평가 전용으로
+│   │                                  # 명시되어 있어 별도 "운영 배포" 가이드로 만들 원본이 없음
+│   │                                  # (설치는 getting-started/quickstart.md, 컨테이너 구성
+│   │                                  # 레퍼런스는 reference/docker-compose.md가 이미 커버)
+│   ├── kubernetes.md                 # install/03-install-k8s.md
+│   ├── requirements.md               # install/01-requirements.md (배포 프로파일·사이징·하드웨어)
+│   ├── runbook.md                    # operations/01-runbook-k8s.md + 03-runbook-docker-compose.md
+│   │                                  # (배포 방식별 절 구분 — PoC docker-compose도 백업/복구는 필요)
+│   └── observability.md              # operations/02-observability.md
 │
-├── support/                          # 기존 support/ 대체 위치 (아래 "미결정 사항" 참고)
+├── support/                          # 기존 support/ 대체 위치 (아래 "미결정 사항" 참고).
+│   │                                  # "release/" 최상위 분리안(releases-and-compatibility
+│   │                                  # + known-limitations만 따로)도 검토했으나, support 쪽에
+│   │                                  # 남는 게 support-policy.md 하나뿐이라 폐기 — 지금은 세
+│   │                                  # 파일 다 support/ 유지. 세 파일 성격이 서로 달라
+│   │                                  # 한 번에 손대지 않는다: known-limitations.md는 내용이
+│   │                                  # 이미 충분해 바로 마이그레이션 가능, support-policy.md는
+│   │                                  # SLA·채널 등 [결정 필요] 표기가 실제 사업 결정 대기
+│   │                                  # 중이라 재정리로 채울 수 있는 부분이 아님, releases.md는
+│   │                                  # "실 이력 쌓이는 대로 채우는" 의도된 스텁이라 보류
 │   ├── support-policy.md
 │   ├── releases-and-compatibility.md
 │   └── known-limitations.md
@@ -144,7 +163,7 @@ Docusaurus 기반 또는 유사 규모의 멀티 오디언스 OSS 프로젝트 5
   카테고리 구조로 자연스럽게 구현한다. `reference/`는 반대로 제품별 폴더 없이 flat하게
   두는데, rag-ent-api의 API·설정 표면이 rag-api 위에 얹는 확장 수준이라 guides처럼
   오디언스 자체를 분리할 만큼 크지 않기 때문이다.
-- `deployment/`를 별도 섹션으로 뺀 것은 조사 대상 5곳 중 4곳이 공통으로 쓰는 패턴과 일치.
+- `deploy/`를 별도 섹션으로 뺀 것은 조사 대상 5곳 중 4곳이 공통으로 쓰는 패턴과 일치.
 
 **보완 검토 필요**
 1. ~~`reference/cli.md`(최상위, "있다면")는 제품별 폴더링 원칙과 어긋난다~~ — reference/를
@@ -169,14 +188,16 @@ Docusaurus 기반 또는 유사 규모의 멀티 오디언스 OSS 프로젝트 5
 | 기존 | 신규 |
 |---|---|
 | `intro.md` | `intro.md` (유지) |
-| `install/01-requirements.md` | `deployment/production-checklist.md` (사이징·요구사항 표) |
+| `install/01-requirements.md` | `deploy/requirements.md` (사이징·요구사항 표) |
 | `install/02-quickstart.md` | `getting-started/quickstart.md` |
-| `install/03-install-k8s.md` | `deployment/kubernetes.md` |
-| `install/04-enterprise-setup.md` | `guides/rag-ent/sso-and-auth-setup.md` (SSO 부분) + `deployment/production-checklist.md` (인프라 부분) 분리 |
+| `install/03-install-k8s.md` | `deploy/kubernetes.md` |
+| `install/04-enterprise-setup.md` | `guides/rag-ent/sso-and-auth-setup.md` (전체 — Keycloak/설정/RBAC/콘솔 활성화뿐, 인프라
+  내용 없어 분리하지 않음) |
 | `install/05-verification.md` | `getting-started/first-kb-and-query.md`에 통합 |
-| `install/06-integrations.md` | `guides/rag-api/` 하위로, 성격에 따라 신규 파일명 부여 |
-| `operations/01-runbook-k8s.md`, `03-runbook-docker-compose.md` | `deployment/production-checklist.md` |
-| `operations/02-observability.md` | `guides/rag-admin/monitoring-and-logs.md` |
+| `install/06-integrations.md` | `guides/rag-ent/librechat-integration.md` (Enterprise 배포 전제 — SSO+RBAC 연동 내용이라
+  `guides/rag-api/`보다 `guides/rag-ent/`가 맞음) |
+| `operations/01-runbook-k8s.md`, `03-runbook-docker-compose.md` | `deploy/runbook.md` (배포 방식별 절 구분) |
+| `operations/02-observability.md` | `deploy/observability.md` |
 | `overview/01-product.md` | `overview/introduction.md` |
 | `overview/02-features.md` | `overview/features.md` (별도 페이지 유지, `intro.md` 통합안 폐기) |
 | `overview/03-architecture.md` | `concepts/architecture.md` |
@@ -184,7 +205,7 @@ Docusaurus 기반 또는 유사 규모의 멀티 오디언스 OSS 프로젝트 5
 | `reference/02-settings-guide.md` | `reference/configuration.md` (rag-ent 확장 설정 포함 통합) |
 | `reference/03-environment-guide.md` | `reference/environment-variables.md` (별도 문서 유지) |
 | `reference/04-features-catalog.md` | `concepts/` 하위 관련 파일에 흡수 |
-| `reference/05-docker-compose-reference.md` | `reference/docker-compose.md` (deployment/ 대신 flat reference/ 유지) |
+| `reference/05-docker-compose-reference.md` | `reference/docker-compose.md` (deploy/ 대신 flat reference/ 유지) |
 | `support/01-support-policy.md` | `support/support-policy.md` |
 | `support/02-releases.md` | `support/releases-and-compatibility.md` |
 | `support/03-known-limitations.md` | `support/known-limitations.md` |

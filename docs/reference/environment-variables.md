@@ -55,6 +55,21 @@ POSTGRES_PASSWORD=password
 
 ---
 
+## 커넥터 시크릿 암호화 키
+
+```
+CONNECTOR_SECRET_KEY=
+```
+
+| 변수 | 설명 |
+|------|------|
+| `CONNECTOR_SECRET_KEY` | 커넥터 설정의 시크릿 필드(`auth_token_secret`/`auth_headers`/`auth_basic`)를 저장 시 암호화하는 Fernet 키(URL-safe base64, 32바이트). 비워두면 코드에 고정된 약한 기본 키로 폴백한다 — **운영 배포에서는 반드시 실값을 채운다** |
+
+커넥터 접속 토큰 자체는 이 변수로 넣는 게 아니라 커넥터 생성/수정 API 호출로 전달되며,
+이 키는 그 값을 저장할 때 암호화하는 용도로만 쓰인다.
+
+---
+
 ## 외부 서비스 키
 
 ```
@@ -127,3 +142,5 @@ PAGE_SIZE=10
 4. k8s 배포라면 `.env` 대신 SOPS 등으로 암호화한 Secret을 사용한다.
 5. `SMTP_USERNAME`/`PASSWORD`가 실 SMTP 서버 인증 정보와 일치하는지 확인한다. mailpit
    값이 그대로 남아 있으면 초대 메일이 실제로는 발송되지 않는다. [ENT]
+6. `CONNECTOR_SECRET_KEY`를 코드 기본값이 아닌 실값으로 설정했는지 확인한다. 비워두면
+   약한 기본 키로 폴백해 커넥터 시크릿 암호화가 사실상 무의미해진다.

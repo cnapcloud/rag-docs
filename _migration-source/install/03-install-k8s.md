@@ -125,8 +125,8 @@ oidc / authz / smtp / rate_limit:  # Enterprise 구성 시 — 04-enterprise-set
 
 DB·S3·Redis 비밀번호, 외부 API 키는 `settings.yaml` ConfigMap에 쓰지 않는다. 키 자체를
 빼고 환경변수 오버라이드(`SECTION__FIELD` 형식)로 **k8s Secret에서만 주입**한다.
-커넥터 접속 토큰은 제품이 자체 암호화(Fernet)하므로 `security.fernet_key`만 Secret으로
-주입하면 된다.
+커넥터 접속 토큰은 제품이 자체 암호화(Fernet)하므로 `CONNECTOR_SECRET_KEY` 환경변수만
+Secret으로 주입하면 된다(값 자체는 API로 설정).
 
 각 overlay의 `secrets/*.env`는 kustomize 기본 `secretGenerator`로 Secret을 생성하며,
 저장소에는 로컬 평가용 placeholder 값만 커밋되어 있다. 운영 배포 전 이 파일들의 값을
@@ -143,13 +143,28 @@ Docker Compose 배포([02-quickstart.md](02-quickstart.md))는 `docker/.env`로 
 
 ## 4. 배포
 
+아래 순서를 지켜야 한다 — 순서를 어기면 `cnpg/cluster`가 백업 대상(minio) 없이 뜨거나,
+`rag-api`의 `/ready`가 임베딩 서버 연결 실패로 계속 내려간다.
+
+### 4.1 infra (기존 인프라 재사용 시 전체 생략)
+
+1. `minio` — cnpg cluster의 백업 대상이라 가장 먼저 떠 있어야 한다
+2. `cnpg/operator`
+3. `cnpg/cluster`
+4. `redis-ha`
+5. (선택) `mailpit`, `reloader`
+
+### 4.2 llm
+
+1. `qdrant`
+2. `ollama` — 클러스터 외부 임베딩 서버를 쓸 때만 배포(§2 5번 항목 참조). 이 순서대로
+   가면 `rag-api`보다 먼저 임베딩 서버가 준비된다
+3. `dagster`
+4. `rag-api` — rag-admin 포함
+
+각 컴포넌트 디렉터리에서:
+
 ```bash
-# 각 컴포넌트 디렉터리에서 (기존 인프라 재사용 시 infra/ 단계는 생략)
-# 1) infra:  minio(cnpg 백업 대상이라 먼저) → cnpg/operator → cnpg/cluster → redis-ha
-#            (mailpit, reloader는 선택)
-# 2) llm:    qdrant → ollama(클러스터 외부 임베딩 서버 쓸 때만, §2 5번 항목 참조) → dagster → rag-api
-#            (rag-admin은 rag-api에 포함)
-#            임베딩 서버가 먼저 준비돼 있어야 한다 — /ready가 임베딩 연결까지 확인한다
 make preview     # 생성될 매니페스트 확인
 make diff        # 기존 클러스터와 차이 확인
 make apply       # server-side apply

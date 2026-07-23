@@ -13,13 +13,13 @@ const CardList = [
     title: '지금 설치하시나요?',
     description: 'docker-compose 기반 평가용 설치부터 첫 검색까지, 약 30분 만에 끝내는 Quick Start.',
     linkLabel: 'Quick Start 시작',
-    to: '/install/02-quickstart',
+    to: '/getting-started/quickstart',
   },
   {
     title: '이미 운영 중이신가요?',
     description: 'k8s 배포의 백업·복구·업그레이드 runbook과 관측 구성을 확인합니다.',
     linkLabel: 'k8s Runbook 보기',
-    to: '/operations/01-runbook-k8s',
+    to: '/deploy/runbook',
   },
 ];
 
