@@ -1,8 +1,8 @@
 .DS_Store
-demo/recordings/
-demo/__pycache__/
-demo/.venv/
-demo/.ruff_cache/
+recorder/output/
+recorder/__pycache__/
+recorder/.venv/
+recorder/.ruff_cache/
 
 # Docusaurus
 /node_modules

@@ -1,14 +1,14 @@
 """Standalone recording for the namu.wiki "고양이" source clip.
 
-02-record.py's jane_step5_documents_source clicks through to this same page
+record.py's jane_step5_documents_source clicks through to this same page
 from rag-admin and immediately closes the popup - the actual scroll-to-content
 clip is recorded here instead, independently of the real rag-admin/Keycloak/
 SMTP environment, so it can be re-taken quickly without re-running the full
 two-account scenario. Splice this clip in after that popup-open cut during
-editing (see 02-record.py:295-298).
+editing (see record.py:295-298).
 
 Run:
-    python 02b-record-namuwiki.py
+    python record-namuwiki.py
 """
 
 from pathlib import Path
@@ -16,12 +16,12 @@ from pathlib import Path
 from playwright.sync_api import Page, sync_playwright
 
 NAMUWIKI_CAT_URL = "https://namu.wiki/w/고양이"
-RECORDING_DIR = Path(__file__).parent / "recordings"
+RECORDING_DIR = Path(__file__).parent / "output"
 
 # Chromium (headless or headed) never draws the OS mouse cursor, so a plain
 # recording looks like elements are changing by themselves. This injects a
 # small dot that tracks real mousemove events so cursor movement is visible
-# in the video - mirrors 02-record.py's CURSOR_JS.
+# in the video - mirrors record.py's CURSOR_JS.
 CURSOR_JS = """
 (() => {
   function init() {

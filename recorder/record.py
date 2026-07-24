@@ -1,6 +1,6 @@
 """Playwright recording script for the two-account RBAC verification demo.
 
-Follows the cuts in 01-scenario.md (jane the admin, then john the invited
+Follows the cuts in scenario.md (jane the admin, then john the invited
 member) against a live rag-admin deployment (default target:
 https://rag-admin.cnapcloud.com). This drives a REAL environment as TWO REAL
 users in a single continuous recording — review every step before running,
@@ -25,14 +25,14 @@ this file lives in a repo that may be shared with customers.
     export RAG_ADMIN_JOHN_PASSWORD="..."
 
 Run:
-    python 02-record.py
+    python record.py
 
-Before running, walk through 01-scenario.md's "사전 준비사항" checklist (john's
+Before running, walk through scenario.md's "사전 준비사항" checklist (john's
 IdP account must already exist, kb-01/02/03 must exist with no leftover kb-04
 or john membership from a prior take, no other ingest running, etc.) and its
 "재실행 시 정리" section afterwards.
 
-John's upload step uses assets/ai_chat_소개.pdf (already in this repo).
+John's upload step uses data/ai_chat_소개.pdf (already in this repo).
 
 Login is OIDC Authorization Code + PKCE (see CLAUDE.md access-control docs).
 rag-admin has no local login form; it redirects to the IdP (Keycloak by
@@ -76,8 +76,8 @@ JOHN_PASSWORD = os.environ["RAG_ADMIN_JOHN_PASSWORD"]
 DAGSTER_URL = os.environ.get("DAGSTER_URL", "https://dagster.cnapcloud.com")
 MAILPIT_URL = os.environ.get("MAILPIT_URL", "https://mailpit.cnapcloud.com")
 
-SAMPLE_DOC = Path(__file__).parent / "assets" / "ai_chat_소개.pdf"
-RECORDING_DIR = Path(__file__).parent / "recordings"
+SAMPLE_DOC = Path(__file__).parent / "data" / "ai_chat_소개.pdf"
+RECORDING_DIR = Path(__file__).parent / "output"
 
 NAMUWIKI_CONNECTOR_NAME = "나무위키"
 CAT_SEARCH_TERM = "고양이"
@@ -295,7 +295,7 @@ def jane_step5_documents_source(page: Page) -> None:
     page.wait_for_timeout(1500)
 
     # 클릭은 하지 않고 커서만 source 링크로 이동 - 실제 팝업 열림/스크롤 클립은
-    # 02b-record-namuwiki.py에서 따로 녹화해서 편집 시 이어 붙인다.
+    # record-namuwiki.py에서 따로 녹화해서 편집 시 이어 붙인다.
     source_link = page.locator("aside").get_by_role("link", name=CAT_SEARCH_TERM)
     move_to(page, source_link)
     page.wait_for_timeout(DEFAULT_WAIT_MS)
@@ -472,7 +472,7 @@ def john_step6_dagster_run(page: Page) -> None:
     page.goto(f"{DAGSTER_URL}/runs", timeout=20000)
     # 실행 ID는 매번 달라 텍스트로 못 잡는다 - 표 첫 행의 /runs/<uuid> 링크를 잡는다.
     # "가장 최근 run = 방금 올린 ai_chat_소개.pdf"라는 전제이므로, 촬영 시점에 다른
-    # 인제스트가 동시에 돌고 있지 않아야 한다 (01-scenario.md 사전 준비사항 4번).
+    # 인제스트가 동시에 돌고 있지 않아야 한다 (scenario.md 사전 준비사항 4번).
     first_run_link = page.locator('a[href^="/runs/"]').first
     first_run_link.wait_for(state="visible", timeout=20000)
     page.wait_for_timeout(1500)
