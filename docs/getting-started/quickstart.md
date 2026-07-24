@@ -9,8 +9,8 @@ docker-compose로 배포해 제품을 평가할 수 있다.
 
 이 문서는 **설치와 기동**까지만 다룬다. 설치가 끝난 뒤 KB를 만들고 문서를 올려 실제로
 검색해보는 흐름은 [첫 KB와 검색](first-kb-and-query.md)에서 이어서 진행한다. 인증(SSO)·접근
-제어를 포함한 Enterprise 구성 평가는 [guides/rag-ent/sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md),
-운영 환경 설치는 [kubernetes.md](../deploy/kubernetes.md)를 참고한다.
+제어는 [sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md),
+Kubernetes 설치는 [kubernetes.md](../deploy/kubernetes.md)를 참고한다[ENT].
 
 ---
 
@@ -24,8 +24,6 @@ docker-compose로 배포해 제품을 평가할 수 있다.
 | 임베딩 서버 | Ollama (아래 §2에서 준비 — GPU 권장, CPU도 평가 가능) |
 | Python | 소스 빌드 기준 3.12 (3.13 이상 미지원 — [알려진 제약](../support/known-limitations.md) 참조) |
 
-규모별 상세 사이징 기준(문서량·동시 사용자별 하드웨어 산정)은
-[requirements.md](../deploy/requirements.md)를 참고한다.
 
 ## 2. 임베딩 서버(Ollama) 준비
 
@@ -33,15 +31,11 @@ docker-compose로 배포해 제품을 평가할 수 있다.
 Ollama를 설치하고 기본 임베딩 모델을 내려받는다.
 
 ```bash
-# https://ollama.com 설치 후
 ollama pull bge-m3
-ollama serve   # 데몬으로 이미 실행 중이면 생략
-```
+OLLAMA_HOST=0.0.0.0 ollama serve
 
-확인:
-
-```bash
-curl http://localhost:11434/api/tags   # bge-m3 목록에 있어야 함
+# 확인 (bge-m3가 목록에 있어야 함)
+curl http://localhost:11434/api/tags
 ```
 
 > **대안 — OpenAI 임베딩**: GPU가 없으면 Ollama 대신 OpenAI API를 쓸 수 있다.
@@ -53,7 +47,7 @@ curl http://localhost:11434/api/tags   # bge-m3 목록에 있어야 함
 Core 모드 평가는 `rag-api` 저장소 하나로 충분하다.
 
 ```bash
-git clone <rag-api 저장소 URL>
+git clone https://github.com/cnapcloud/rag-api.git
 cd rag-api/docker
 ```
 
@@ -68,8 +62,6 @@ embedding:
   ollama_url: "http://<Ollama 호스트 IP>:11434"   # 컨테이너에서 접근 가능한 주소
 ```
 
-- 같은 호스트에서 Ollama를 실행 중이면 `http://host.docker.internal:11434`
-  (Linux는 호스트 IP 사용).
 - 리랭킹(`retrieval.rerank`)은 외부 API(Jina) 연동 기능이다. API 키가 없으면
   `enabled: false`로 두어도 검색은 정상 동작한다 (RRF 점수 사용).
 
