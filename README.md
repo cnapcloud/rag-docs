@@ -4,9 +4,8 @@ RAG Platform(Core: `rag-api` / Enterprise: `rag-ent-api` / 콘솔: `rag-admin`) 
 소스 저장소. [Docusaurus](https://docusaurus.io/)로 빌드되는 공개(public) 사이트이며, 문서
 원본은 전부 `docs/`에 있다.
 
-| 표기 | 의미 |
-|---|---|
-| `[ENT]` | Enterprise(`rag-ent-api`, OIDC 인증 + RBAC) 배포에만 해당. 표기가 없으면 Core/Enterprise 공통 |
+`[ENT]` 표기는 Enterprise(`rag-ent-api`, OIDC 인증 + RBAC) 배포에만 해당하는 내용을 뜻한다.
+표기가 없으면 Core/Enterprise 공통이다.
 
 ## 구성
 
