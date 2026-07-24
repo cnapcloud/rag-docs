@@ -9,5 +9,5 @@ title: 데모 영상
 
 <video controls width="100%">
   <source src="/img/video/demo.mp4" type="video/mp4" />
-  브라우저가 비디오 태그를 지원하지 않는다 — [다운로드](/img/movie/demo.mp4)로 직접 확인한다.
+  브라우저가 비디오 태그를 지원하지 않는다 — [다운로드](/img/video/demo.mp4)로 직접 확인한다.
 </video>

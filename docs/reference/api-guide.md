@@ -50,7 +50,7 @@ JWT의 `groups` claim에 super-admin 그룹명(설정 키 `authz.super_admin_rol
 
 super-admin은 모든 KB에서 owner로 취급된다. `kb_authz_enabled`가 `false`(6.4절 시스템 설정 참고 — `settings.yaml` 키가 아니라 런타임에 토글하는 시스템 설정값)이면 역할 체크 자체가 스킵되고 인증만 요구한다.
 
-Keycloak 클라이언트·그룹 설정, `oidc`/`authz` 섹션의 상세 필드는 [설정](configuration.md#18-oidc-enterprise-전용)과
+Keycloak 클라이언트·그룹 설정, `oidc`/`authz` 섹션의 상세 필드는 [설정](configuration.md#18-oidc-ent)과
 [SSO·인증 설정](../guides/rag-ent/sso-and-auth-setup.md)에서 다룬다.
 
 ---
@@ -1145,7 +1145,7 @@ Dagster Schedule (cron 도달)
 
 ### 커넥터 문서 목록
 
-이 커넥터가 수집한 문서 목록을 조회합니다. 쿼리 파라미터는 [10장 — 문서 목록 조회](#10-문서-목록-조회-공통)와 동일합니다. 커넥터별 집계는 [12장 — 문서 상태 집계 조회](#12-문서-상태-집계-조회-공통)의 커넥터별 집계 참고.
+이 커넥터가 수집한 문서 목록을 조회합니다. 쿼리 파라미터는 [10장 — 문서 목록 조회](#10-문서-목록-조회)와 동일합니다. 커넥터별 집계는 [12장 — 문서 상태 집계 조회](#12-문서-상태-집계-조회)의 커넥터별 집계 참고.
 
 ```bash
 curl "http://localhost:8000/api/connectors/b59168c41e5e4a0d/docs"

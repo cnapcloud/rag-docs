@@ -286,7 +286,7 @@ ingestion:
 - 목록 순서가 곧 로드 순서다 — 기본 파서가 먼저 등록된 뒤 목록이 순서대로 실행되므로, 뒤 항목이 앞 항목·기본 파서를 덮어쓸 수 있다.
 - 각 항목은 프로세스 최초 `parse()` 호출 시 지연 로드된다(애플리케이션 startup 훅에 묶지 않음) — FastAPI/Dagster op/큐 워커/CLI 등 `parse()` 진입점이 여러 개이기 때문.
 - Enterprise 배포는 이 메커니즘으로 이미지 캡셔닝/PDF OCR 폴백/표 구조 보존 파싱을 등록한다 —
-  아래 [Enterprise 확장 필드](#enterprise-확장-필드-enterprise-전용) 참고.
+  아래 [확장 필드](#확장-필드-ent) 참고.
 
 ### 확장 필드 [ENT]
 

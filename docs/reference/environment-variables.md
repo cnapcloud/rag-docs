@@ -109,7 +109,7 @@ SMTP_PASSWORD=
 `OIDC_ADMIN_CLIENT_ID/SECRET`을 설정하지 않으면 관리자 조회 기능만 실패하고 나머지 Enterprise
 기능(인증, RBAC)은 정상 동작한다 — 장애처럼 보이지 않아 누락을 알아채기 어렵다.
 `SMTP_USERNAME`/`PASSWORD`를 운영 SMTP로 교체할 때
-[Configuration §20 smtp](configuration.md#20-smtp-enterprise-전용)의
+[Configuration §20 smtp](configuration.md#20-smtp-ent)의
 `host`/`port`/`from_address`도 함께 바꿔야 한다.
 
 ---
