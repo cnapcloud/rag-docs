@@ -5,7 +5,7 @@ import styles from './styles.module.css';
 const CardList = [
   {
     title: '처음 도입을 검토 중이신가요?',
-    description: '제품 정의, 핵심 가치 제안, 3계층 구성(rag-api / rag-ent-api / rag-admin)을 5분 안에 파악합니다.',
+    description: '제품 정의, 핵심 가치 제안, 3계층 구성(RAG API / RAG ENT API / RAG Admin)을 5분 안에 파악합니다.',
     linkLabel: '제품 개요 보기',
     to: '/overview/introduction',
   },

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 4
+title: Docker Compose 구성
 ---
 
 # Docker Compose

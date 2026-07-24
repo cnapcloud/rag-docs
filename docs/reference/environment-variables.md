@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+title: 환경변수
 ---
 
 # 환경변수

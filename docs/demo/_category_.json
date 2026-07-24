@@ -1,8 +1,8 @@
 {
   "position": 7,
-  "label": "데모",
+  "label": "Demo",
   "link": {
     "type": "generated-index",
-    "description": "데모 시나리오"
+    "description": "실제 화면으로 보는 제품 데모 시나리오와 영상"
   }
 }

@@ -42,6 +42,25 @@ export function OperationsIcon() {
   );
 }
 
+export function ConceptsIcon() {
+  return (
+    <Icon>
+      <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+      <path d="M2 12l10 5 10-5" />
+      <path d="M2 17l10 5 10-5" />
+    </Icon>
+  );
+}
+
+export function GuidesIcon() {
+  return (
+    <Icon>
+      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5v-17Z" />
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    </Icon>
+  );
+}
+
 export function ReferenceIcon() {
   return (
     <Icon>

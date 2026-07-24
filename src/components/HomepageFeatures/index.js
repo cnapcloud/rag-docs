@@ -3,10 +3,10 @@ import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 import {
   OverviewIcon,
-  InstallIcon,
+  ConceptsIcon,
+  GuidesIcon,
   OperationsIcon,
   ReferenceIcon,
-  SupportIcon,
   DemoIcon,
 } from './icons';
 
@@ -14,38 +14,38 @@ const FeatureList = [
   {
     title: '개요',
     Icon: OverviewIcon,
-    description: '제품 정의, 기능 카탈로그, 아키텍처.',
+    description: '3-Tier 아키텍처, 기능 카탈로그',
     to: '/overview/introduction',
   },
   {
-    title: '설치',
-    Icon: InstallIcon,
-    description: '요구사항, Quick Start, k8s 설치, Enterprise 설정, 설치 검증.',
-    to: '/deploy/requirements',
+    title: '개념',
+    Icon: ConceptsIcon,
+    description: '아키텍처, 검색·인제스트 흐름, 접근 제어',
+    to: '/concepts/architecture',
   },
   {
-    title: '운영',
+    title: '가이드',
+    Icon: GuidesIcon,
+    description: 'RAG API / RAG Admin / RAG ENT 제품별 How-to',
+    to: '/guides/rag-api/kb',
+  },
+  {
+    title: '배포',
     Icon: OperationsIcon,
-    description: '백업/복구/업그레이드 runbook과 관측 구성.',
-    to: '/deploy/runbook',
+    description: '요구사항, k8s 설치, 백업/복구/업그레이드, 관측 구성',
+    to: '/deploy/kubernetes',
   },
   {
     title: '레퍼런스',
     Icon: ReferenceIcon,
-    description: 'API 가이드, 설정(settings.yaml), 환경변수(.env) 레퍼런스.',
+    description: 'API, 설정(settings.yaml), 환경변수(.env), Docker Compose 레퍼런스',
     to: '/reference/api-guide',
-  },
-  {
-    title: '지원',
-    Icon: SupportIcon,
-    description: '지원 정책, 릴리스/호환성, 알려진 제약.',
-    to: '/support/support-policy',
   },
   {
     title: '데모',
     Icon: DemoIcon,
-    description: '데모 시나리오.',
-    to: '/demo/01-scenario',
+    description: '데모 시나리오와 영상',
+    to: '/demo/scenario',
   },
 ];
 

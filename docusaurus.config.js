@@ -11,7 +11,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'RAG Platform',
-  tagline: 'rag-api / rag-ent-api / rag-admin 설치·운영·연동 가이드',
+  tagline: 'RAG API / RAG ENT API / RAG Admin 설치·운영·연동 가이드',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -80,6 +80,7 @@ const config = {
           {to: '/guides/rag-api/kb', label: 'Guides', position: 'left'},
           {to: '/reference/api-guide', label: 'Reference', position: 'left'},
           {to: '/support/support-policy', label: 'Support', position: 'left'},
+          {to: '/demo/scenario', label: 'Demo', position: 'left'},
           {
             href: 'https://github.com/cnapcloud/rag-docs',
             label: 'GitHub',
@@ -111,7 +112,7 @@ const config = {
           {
             title: 'Resources',
             items: [
-              {label: 'Demo Scenario', to: '/demo/01-scenario'},
+              {label: 'Demo Scenario', to: '/demo/scenario'},
               {label: 'GitHub', href: 'https://github.com/cnapcloud/rag-docs'},
             ],
           },

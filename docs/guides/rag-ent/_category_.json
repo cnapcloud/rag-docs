@@ -1,6 +1,6 @@
 {
   "position": 3,
-  "label": "RAG-ENT API",
+  "label": "RAG ENT",
   "link": {
     "type": "generated-index",
     "description": "SSO·RBAC 등 Enterprise 전용 기능 — rag-ent-api 도메인별 How-to"
