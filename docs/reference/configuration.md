@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Configuration
+# 설정
 
 `settings.yaml`에 있는 모든 설정 항목의 의미·기본값·바꿀 때 고려할 점을 섹션별로 정리한다.
 

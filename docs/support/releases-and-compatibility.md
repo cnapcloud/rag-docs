@@ -41,5 +41,4 @@
 
 ## 4. 지원 대상 버전
 
-[support-policy.md §4](support-policy.md#4-버전-지원-주기) 참조 — 지원 정책이 사업
-결정 대기 중이라 이 문서도 함께 초안 상태다.
+[support-policy.md §4](support-policy.md#4-버전-지원-주기) 참조.

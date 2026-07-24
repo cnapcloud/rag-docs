@@ -2,11 +2,12 @@
 sidebar_position: 3
 ---
 
-# Environment Variables
+# 환경변수
 
 배포에 필요한 자격증명·시크릿 값 전체를 정리한다. [Configuration](configuration.md)이 다루는
 `settings.yaml`과 역할이 분리되어 있으며, 이 문서는 **어떤 값에 실제 자격증명을 넣어야
 하는지**를 다루는 레퍼런스다.
+
 ---
 
 ## `settings.yaml`과의 역할 분리
