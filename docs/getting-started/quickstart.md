@@ -32,7 +32,7 @@ Ollama를 설치하고 기본 임베딩 모델을 내려받는다.
 
 ```bash
 ollama pull bge-m3
-OLLAMA_HOST=0.0.0.0 ollama serve
+OLLAMA_HOST=0.0.0.0 ollama serve  # 데몬으로 이미 실행 중이면 생략
 
 # 확인 (bge-m3가 목록에 있어야 함)
 curl http://localhost:11434/api/tags
