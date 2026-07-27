@@ -49,7 +49,7 @@ const config = {
           sidebarPath: './sidebars.js',
           routeBasePath: '/',
           numberPrefixParser: false,
-          editUrl: 'https://github.com/cnapcloud/rag-docs/tree/main/docs/',
+          editUrl: 'https://github.com/cnapcloud/rag-docs/tree/main/',
         },
         blog: false,
         theme: {
@@ -80,7 +80,7 @@ const config = {
           {to: '/guides/rag-api/kb', label: 'Guides', position: 'left'},
           {to: '/reference/api-guide', label: 'Reference', position: 'left'},
           {to: '/support/support-policy', label: 'Support', position: 'left'},
-          {to: '/demo/scenario', label: 'Demo', position: 'left'},
+          {to: '/demo/rag-demo', label: 'Demo', position: 'left'},
           {
             href: 'https://github.com/cnapcloud/rag-docs',
             label: 'GitHub',
@@ -112,7 +112,7 @@ const config = {
           {
             title: 'Resources',
             items: [
-              {label: 'Demo Scenario', to: '/demo/scenario'},
+              {label: 'Demo', to: '/demo/rag-demo'},
               {label: 'GitHub', href: 'https://github.com/cnapcloud/rag-docs'},
             ],
           },

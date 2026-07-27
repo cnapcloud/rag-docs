@@ -17,11 +17,12 @@ jane(관리자)·john(초대받은 멤버) 두 실제 계정으로 로그인해 
 
 | # | 확인 항목 | 이유 |
 |---|-----------|------|
-| 1 | john@cnapcloud.com 계정이 Keycloak(IdP)에 이미 존재 | 초대 후 자동 활성화되는 것은 KB 멤버십이며 IdP 계정 자체 생성이 아님 — 계정이 없으면 시나리오 2의 로그인 단계에서 막힌다 |
-| 2 | john@cnapcloud.com이 실제 수신 확인 가능한 메일함인지 확인 | 시나리오 1의 7번(멤버 초대)은 실제 이메일 발송을 유발함 (scenario.md 촬영 메모의 opt-in 항목과 동일 이슈) |
-| 3 | john 역할(초대받은 일반 멤버)에 KB 생성 권한이 있는지 확인 | 시나리오 2의 3번(kb-04 생성)이 그 권한으로 가능한 동작인지 사전 확인 필요 — 안 되면 해당 단계에서 실패 |
-| 4 | 촬영 시점에 다른 인제스트가 동시에 돌고 있지 않은지 확인 | 시나리오 2의 6번(Dagster run 클릭)이 "가장 최근 run = 방금 올린 ai_chat_소개.pdf"라는 전제에 의존 (scenario.md 컷 3과 동일 주의사항) |
-| 5 | kb-01/02/03에 이전 촬영에서 남은 데이터(kb-04, john 멤버십 등)가 없는지 확인 | 반복 촬영 시 리스트가 지저분해지거나 흐름이 어긋날 수 있음 — 아래 "재실행 시 정리" 참고 |
+| 1 | 대상 배포가 Enterprise 모드(entMode)인지 확인 | Access Management 메뉴와 사이드바의 Sign out 버튼은 entMode에서만 렌더링됨(rag-admin `src/components/layout/Sidebar.tsx`) — Core 배포는 UI에서 로그아웃할 방법이 없어 시나리오 1의 9번(Sign out)과 시나리오 2 전체(john 로그인)가 진행 불가능 |
+| 2 | john@cnapcloud.com 계정이 Keycloak(IdP)에 이미 존재 | 초대 후 자동 활성화되는 것은 KB 멤버십이며 IdP 계정 자체 생성이 아님 — 계정이 없으면 시나리오 2의 로그인 단계에서 막힌다 |
+| 3 | john@cnapcloud.com이 실제 수신 확인 가능한 메일함인지 확인 | 시나리오 1의 7번(멤버 초대)은 실제 이메일 발송을 유발함 (scenario.md 촬영 메모의 opt-in 항목과 동일 이슈) |
+| 4 | john 역할(초대받은 일반 멤버)에 KB 생성 권한이 있는지 확인 | 시나리오 2의 3번(kb-04 생성)이 그 권한으로 가능한 동작인지 사전 확인 필요 — 안 되면 해당 단계에서 실패 |
+| 5 | 촬영 시점에 다른 인제스트가 동시에 돌고 있지 않은지 확인 | 시나리오 2의 6번(Dagster run 클릭)이 "가장 최근 run = 방금 올린 ai_chat_소개.pdf"라는 전제에 의존 (scenario.md 컷 3과 동일 주의사항) |
+| 6 | kb-01/02/03에 이전 촬영에서 남은 데이터(kb-04, john 멤버십 등)가 없는지 확인 | 반복 촬영 시 리스트가 지저분해지거나 흐름이 어긋날 수 있음 — 아래 "재실행 시 정리" 참고 |
 
 ---
 
@@ -54,9 +55,12 @@ jane(관리자)·john(초대받은 멤버) 두 실제 계정으로 로그인해 
 2. Knowledge Bases로 이동, 리스트 확인 (kb-02만 보이는지 — jane이 초대하지 않은 kb-01/03은
    제외되는지 확인)
 3. 다시 Knowledge Bases로 이동, kb-04 생성 (New KB → kb_id/이름/설명/태그 입력 → Create)
-4. Documents에서 kb-04 선택 후 ai_chat_소개.pdf 업로드
-5. ai_chat_소개.pdf 상태가 "running"인 것 확인
-6. Dagster(Runs)로 이동, 가장 최근 run 클릭 → 상세 화면 스크롤
+4. Configuration으로 이동, kb-04(드롭다운에는 이름 "test-kb"로 표시) 선택 → Ingestion 탭에서
+   Image Captioning / Pdf Ocr Fallback / Table Layout의 Enabled 체크 해제 → Save
+   (글로벌 설정에서는 켜져 있는 opt-in 기능을 kb-04만 override로 끄는 컷)
+5. Documents에서 kb-04 선택 후 ai_chat_소개.pdf 업로드
+6. ai_chat_소개.pdf 상태가 "running"인 것 확인
+7. Dagster(Runs)로 이동, 가장 최근 run 클릭 → 상세 화면 스크롤
 
 ---
 

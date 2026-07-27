@@ -10,6 +10,7 @@ recorder/.ruff_cache/
 .docusaurus
 .cache-loader
 .env.local
+!recorder/.env.local
 .env.development.local
 .env.test.local
 .env.production.local

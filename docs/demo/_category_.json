@@ -3,6 +3,6 @@
   "label": "Demo",
   "link": {
     "type": "generated-index",
-    "description": "실제 화면으로 보는 제품 데모 시나리오와 영상"
+    "description": "RAG Platform 관리 화면과, LibreChat을 MCP로 연결한 검색 데모 시나리오·영상을 제공합니다."
   }
 }

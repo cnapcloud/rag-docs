@@ -272,7 +272,7 @@ def jane_step4_connector(page: Page) -> None:
 
 
 def jane_step5_documents_source(page: Page) -> None:
-    # Documents로 이동 - kb-01/02/03 한 번씩 선택 후 kb-01로, "고양이" 검색,
+    # Documents로 이동 - kb-02/03 한 번씩 선택 후 kb-01로, "고양이" 검색,
     # source 클릭 -> 새 탭에서 스크롤 -> rag-admin 탭으로 복귀
     nav_to(page, "Documents")
     page.wait_for_load_state("networkidle")
@@ -363,8 +363,7 @@ def jane_step7_invite(page: Page) -> None:
     move_and_type(page, page.get_by_placeholder("user@example.com"), JOHN_USER)
     page.wait_for_timeout(DEFAULT_WAIT_MS)
     move_and_click(page, page.get_by_role("button", name="Look up"))
-    # lookup 결과(신규/기존 멤버 여부, role 선택지)가 뜨는 걸 볼 시간.
-    page.wait_for_timeout(LONG_WAIT_MS)
+    page.wait_for_timeout(500)
 
     dialog = page.get_by_role("dialog")
     move_and_click(page, dialog.get_by_role("button", name="Invite", exact=True))
@@ -402,7 +401,7 @@ def john_step2_kb_list(page: Page) -> None:
     nav_to(page, "Knowledge Bases")
     page.wait_for_load_state("networkidle")
     # 리스트가 kb-02만 보인다는 걸 화면에서 충분히 보여준다.
-    page.wait_for_timeout(LONG_WAIT_MS)
+    page.wait_for_timeout(DEFAULT_WAIT_MS)
 
 
 def john_step3_create_kb(page: Page) -> None:
@@ -425,7 +424,29 @@ def john_step3_create_kb(page: Page) -> None:
     page.wait_for_timeout(LONG_WAIT_MS)
 
 
-def john_step4_upload(page: Page) -> None:
+def john_step4_configure_kb(page: Page) -> None:
+    # Configuration으로 이동, kb-04 선택 후 opt-in 인제스트 기능 3개를 KB 단위로 끈다
+    # (Image Captioning / Pdf Ocr Fallback / Table Layout) - 글로벌 설정에서는 켜져
+    # 있어도 kb-04만 override로 비활성화한다는 걸 보여주는 컷.
+    #
+    # KBSelect(Configuration 페이지 헤더)는 옵션 이름으로 kb_name(NEW_KB_LABEL,
+    # "test-kb")을 쓴다 - Documents 페이지 셀렉터가 kb_id를 그대로 쓰는 것과 다르니
+    # select_kb(page, NEW_KB_ID)로 착각하지 말 것.
+    nav_to(page, "Configuration")
+    page.wait_for_load_state("networkidle")
+    select_kb(page, NEW_KB_LABEL)
+    page.wait_for_timeout(DEFAULT_WAIT_MS)
+
+    for group_key in ("image_captioning", "pdf_ocr_fallback", "table_layout"):
+        checkbox = page.locator(f'[id="settings-field-ingestion.{group_key}.enabled"]')
+        move_and_click(page, checkbox)
+        page.wait_for_timeout(400)
+
+    move_and_click(page, page.get_by_role("button", name="Save"))
+    page.wait_for_timeout(LONG_WAIT_MS)
+
+
+def john_step5_upload(page: Page) -> None:
     # Documents에서 kb-04에 ai_chat_소개.pdf 업로드
     nav_to(page, "Documents")
     page.wait_for_load_state("networkidle")
@@ -434,7 +455,7 @@ def john_step4_upload(page: Page) -> None:
     page.wait_for_timeout(DEFAULT_WAIT_MS)
 
     if not SAMPLE_DOC.exists():
-        print(f"[skip] john_step4: sample doc not found at {SAMPLE_DOC}")
+        print(f"[skip] john_step5: sample doc not found at {SAMPLE_DOC}")
         page.wait_for_timeout(1500)
         return
 
@@ -453,19 +474,19 @@ def john_step4_upload(page: Page) -> None:
     page.wait_for_timeout(DEFAULT_WAIT_MS)
 
 
-def john_step5_wait_running(page: Page) -> None:
+def john_step6_wait_running(page: Page) -> None:
     # ai_chat_소개.pdf 상태가 "running"인 것을 확인
     row = page.locator("tbody tr", has_text="ai_chat")
     row.first.wait_for(state="visible", timeout=15000)
     try:
         row.first.get_by_text("running", exact=True).wait_for(state="visible", timeout=15000)
     except Exception:
-        print("[info] john_step5: ai_chat_소개.pdf was already past 'running' by the time we checked")
+        print("[info] john_step6: ai_chat_소개.pdf was already past 'running' by the time we checked")
     # 상태 배지를 화면에서 읽을 시간.
     page.wait_for_timeout(LONG_WAIT_MS)
 
 
-def john_step6_dagster_run(page: Page) -> None:
+def john_step7_dagster_run(page: Page) -> None:
     # Dagster로 이동, Runs에서 해당 run_id 클릭
     # rag-admin과 별개 앱(Dagster webserver)이라 그냥 goto로 이동한다 - 세션
     # 쿠키는 브라우저 컨텍스트에 남아있으므로 재로그인은 필요 없다.
@@ -488,9 +509,9 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, slow_mo=80)
         context = browser.new_context(
-            viewport={"width": 1920, "height": 1080},
+            viewport={"width": 1280, "height": 720},
             record_video_dir=str(RECORDING_DIR),
-            record_video_size={"width": 1920, "height": 1080},
+            record_video_size={"width": 1280, "height": 720},
             # rag-admin ingress currently serves the nginx-ingress default fallback
             # cert instead of the cnapcloud-com-tls secret (SAN=ingress.local) -
             # fix the ingress TLS binding before recording the real customer video,
@@ -514,9 +535,10 @@ def main() -> None:
             login(page, JOHN_USER, JOHN_PASSWORD)
             john_step2_kb_list(page)
             john_step3_create_kb(page)
-            john_step4_upload(page)
-            john_step5_wait_running(page)
-            john_step6_dagster_run(page)
+            john_step4_configure_kb(page)
+            john_step5_upload(page)
+            john_step6_wait_running(page)
+            john_step7_dagster_run(page)
         finally:
             context.close()
             browser.close()
