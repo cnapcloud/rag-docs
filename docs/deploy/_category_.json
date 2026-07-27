@@ -3,6 +3,6 @@
   "label": "Deploy",
   "link": {
     "type": "generated-index",
-    "description": "사이징·요구사항, Kubernetes 설치, 백업/복구/업그레이드 runbook, 관측(Observability) 구성"
+    "description": "사이징·요구사항, Kubernetes 설치, 백업/복구/업그레이드 runbook, 관측(Observability) 구성에 대해 안내합니다."
   }
 }

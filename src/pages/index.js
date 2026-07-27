@@ -19,8 +19,8 @@ function HomepageHeader() {
           셀프호스티드 RAG 검색 플랫폼
         </Heading>
         <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
-          {siteConfig.tagline} — 완전한 셀프호스팅, KB 단위 RBAC와 기업 SSO, 한국어 문서
-          환경 특화, MCP를 통한 에이전트 연동까지 하나의 플랫폼에서 제공합니다.
+          {siteConfig.tagline} — RAG Platform 하나로 완전한 셀프호스팅, 한국어 문서 환경 특화,
+          MCP를 통한 에이전트 연동부터 (Enterprise) KB 단위 RBAC·SSO까지 제공합니다.
         </p>
         <div className={styles.buttons}>
           <Link className="button button--primary button--lg" to="/overview/introduction">

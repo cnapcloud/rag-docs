@@ -3,6 +3,6 @@
   "label": "Concepts",
   "link": {
     "type": "generated-index",
-    "description": "아키텍처, 검색·인제스트 흐름, 문서/커넥터 상태 흐름, 접근 제어 — RAG Platform이 왜 이렇게 동작하는지 설명"
+    "description": "아키텍처와 데이터 흐름, 문서/커넥터 생명주기, 접근 제어·권한 체계까지 — RAG Platform이 왜 이렇게 동작하는지 설명합니다."
   }
 }

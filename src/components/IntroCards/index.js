@@ -11,7 +11,7 @@ const CardList = [
   },
   {
     title: '지금 설치하시나요?',
-    description: 'docker-compose 기반 평가용 설치부터 첫 검색까지, 약 30분 만에 끝내는 Quick Start.',
+    description: 'Docker Compose 기반으로 설치부터 인덱싱, 첫 검색까지 약 30분 만에 완료할 수 있습니다.',
     linkLabel: 'Quick Start 시작',
     to: '/getting-started/quickstart',
   },

@@ -20,7 +20,7 @@ const FeatureList = [
   {
     title: '개념',
     Icon: ConceptsIcon,
-    description: '아키텍처, 검색·인제스트 흐름, 접근 제어',
+    description: '아키텍처, 데이터 흐름, 문서/커넥터 생명주기, 접근 제어·권한 체계',
     to: '/concepts/architecture',
   },
   {
@@ -38,14 +38,14 @@ const FeatureList = [
   {
     title: '레퍼런스',
     Icon: ReferenceIcon,
-    description: 'API, 설정(settings.yaml), 환경변수(.env), Docker Compose 레퍼런스',
+    description: 'API, 설정 및 환경변수, Docker Compose 레퍼런스',
     to: '/reference/api-guide',
   },
   {
     title: '데모',
     Icon: DemoIcon,
-    description: '데모 시나리오와 영상',
-    to: '/demo/scenario',
+    description: 'RAG Platform 데모 / LibreChat 연동 데모',
+    to: '/demo/rag-demo',
   },
 ];
 

@@ -4,12 +4,12 @@ sidebar_position: 1
 
 # Quick Start
 
-가장 빠른 설치 경로 — 약 30분(이미지 빌드 시간 제외) 안에 Core 모드(인증 없음) 단일 호스트
-docker-compose로 배포해 제품을 평가할 수 있다.
+가장 빠른 설치 경로 — 약 30분(§2 Ollama 준비 포함) 안에 Core 모드(인증없음)
+단일 호스트 docker-compose로 배포해 기능을 빠르게 확인할 수 있다.
 
-이 문서는 **설치와 기동**까지만 다룬다. 설치가 끝난 뒤 KB를 만들고 문서를 올려 실제로
-검색해보는 흐름은 [첫 KB와 검색](first-kb-and-query.md)에서 이어서 진행한다. 인증(SSO)·접근
-제어는 [sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md),
+이 문서는 **설치와 기동**까지만 다룬다. 설치가 끝난 뒤 KB를 만들고 문서를 올려 인덱싱한
+뒤 실제로 검색해보는 흐름은 [첫 KB와 검색](first-kb-and-query.md)에서 이어서 진행한다.
+인증(SSO)·접근 제어는 [sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md),
 Kubernetes 설치는 [kubernetes.md](../deploy/kubernetes.md)를 참고한다[ENT].
 
 ---

@@ -3,6 +3,6 @@
   "label": "Guides",
   "link": {
     "type": "generated-index",
-    "description": "제품별 How-to 가이드 — rag-api, rag-admin, rag-ent"
+    "description": "RAG API·RAG Admin·RAG ENT 제품별 사용 가이드를 제공합니다."
   }
 }
