@@ -7,7 +7,7 @@ sidebar_position: 1
 가장 빠른 설치 경로 — 약 30분(§2 Ollama 준비 포함) 안에 Core 모드(인증없음)
 단일 호스트 docker-compose로 배포해 기능을 빠르게 확인할 수 있다.
 
-이 문서는 **설치와 기동**까지만 다룬다. 설치가 끝난 뒤 KB를 만들고 문서를 올려 인덱싱한
+이 문서는 **설치와 서비스 시작**까지만 다룬다. 설치가 끝난 뒤 KB를 만들고 문서를 올려 인덱싱한
 뒤 실제로 검색해보는 흐름은 [첫 KB와 검색](first-kb-and-query.md)에서 이어서 진행한다.
 인증(SSO)·접근 제어는 [sso-and-auth-setup.md](../guides/rag-ent/sso-and-auth-setup.md),
 Kubernetes 설치는 [kubernetes.md](../deploy/kubernetes.md)를 참고한다[ENT].
@@ -65,13 +65,13 @@ embedding:
 - 리랭킹(`retrieval.rerank`)은 외부 API(Jina) 연동 기능이다. API 키가 없으면
   `enabled: false`로 두어도 검색은 정상 동작한다 (RRF 점수 사용).
 
-## 5. 기동
+## 5. 서비스 시작
 
 ```bash
 docker compose up -d --build
 ```
 
-빌드 포함 최초 기동은 수 분 소요된다. 상태 확인:
+빌드 포함 최초 서비스 시작은 수 분 소요된다. 상태 확인:
 
 ```bash
 docker compose ps                        # 전 서비스 Up/healthy 확인
