@@ -52,6 +52,12 @@ RAG Platform은 제품 3종으로 구성된다 — 상시 실행되는 관리 �
           └──────────────────────────────┘
 ```
 
+제품별 소스 공개 범위는 다음과 같다.
+
+- **rag-api** — 오픈소스(MIT), 이미지·소스 모두 공개 ([GitHub](https://github.com/cnapcloud/rag-api))
+- **rag-admin** — 컨테이너 이미지만 공개(`ghcr.io/cnapcloud/rag-admin:latest`), 소스 비공개
+- **rag-ent-api** — 이미지·소스 모두 비공개
+
 전체 시스템(Data Layer·Pipeline Layer 포함) 아키텍처는 [아키텍처 개요](../concepts/architecture.md)에서
 다룬다.
 
