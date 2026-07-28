@@ -27,7 +27,7 @@ Kubernetes 설치는 [kubernetes.md](../deploy/kubernetes.md)를 참고한다[EN
 
 ## 2. 임베딩 서버(Ollama) 준비
 
-임베딩 모델 서버는 compose에 포함되지 않는다. 평가 호스트 또는 접근 가능한 GPU 서버에
+임베딩 모델 서버는 compose에 포함되지 않는다. 설치 호스트 또는 접근 가능한 GPU 서버에
 Ollama를 설치하고 기본 임베딩 모델을 내려받는다.
 
 ```bash
@@ -38,9 +38,8 @@ OLLAMA_HOST=0.0.0.0 ollama serve  # 데몬으로 이미 실행 중이면 생략
 curl http://localhost:11434/api/tags
 ```
 
-> **대안 — OpenAI 임베딩**: GPU가 없으면 Ollama 대신 OpenAI API를 쓸 수 있다.
-> §4에서 `provider.name: "openai"`, `provider.openai_api_key`, `embedding.vector_size: 1536`으로
-> 설정하면 이 단계는 생략된다 (문서 내용이 외부 API로 전송되는 점 유의).
+> GPU 서버가 없으면 Ollama 대신 **OpenAI API**를 사용할 수 있다 — §4 참고. 이 경우 이 단계는
+> 생략된다.
 
 ## 3. 소스 준비
 
@@ -64,7 +63,22 @@ embedding:
   model: "bge-m3"
 ```
 
-- 리랭킹(`retrieval.rerank`)은 외부 API(Jina) 연동 기능이다. API 키가 없으면
+GPU 서버 없이 OpenAI API로 대체하는 경우 다음과 같이 설정한다.
+
+```yaml
+provider:
+  name: "openai"
+  openai_api_key: "<발급받은 API 키>"
+
+embedding:
+  model: "text-embedding-3-small"
+  vector_size: 1536
+```
+
+문서 내용이 외부 API로 전송되는 점 유의.
+
+- 리랭킹(`retrieval.rerank`)은 `provider: "jina"`(외부 API) 또는 `provider: "local"`(자체
+  호스팅 Cohere-호환 rerank 서버, `base_url`로 지정)을 지원한다. 둘 다 쓰지 않으려면
   `enabled: false`로 두어도 검색은 정상 동작한다 (RRF 점수 사용).
 
 ## 5. 서비스 시작
