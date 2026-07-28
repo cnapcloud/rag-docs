@@ -1,14 +1,18 @@
 .PHONY: install record record-namuwiki convert
 
+# HEADLESS=1 (default) avoids black-bar padding from OS window-size limits in
+# headed mode. Use `make record HEADLESS=0` to watch the browser while it records.
+HEADLESS ?= 0
+
 install:
 	uv sync
 	uv run playwright install chromium
 
 record:
-	uv run python record.py
+	HEADLESS=$(HEADLESS) uv run python record.py
 
 record-namuwiki:
-	uv run python record-namuwiki.py
+	HEADLESS=$(HEADLESS) uv run python record-namuwiki.py
 
 # webm -> QuickTime-playable mp4 (H.264). Requires system ffmpeg
 # (brew install ffmpeg) - the Playwright-bundled ffmpeg has no libx264.

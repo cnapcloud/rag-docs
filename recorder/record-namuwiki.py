@@ -11,12 +11,16 @@ Run:
     python record-namuwiki.py
 """
 
+import os
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
 NAMUWIKI_CAT_URL = "https://namu.wiki/w/고양이"
 RECORDING_DIR = Path(__file__).parent / "output"
+# See record.py's HEADLESS comment - headed mode can pad the video with
+# black bars when the OS can't grow the window to the requested viewport.
+HEADLESS = os.environ.get("HEADLESS", "1") != "0"
 
 # Chromium (headless or headed) never draws the OS mouse cursor, so a plain
 # recording looks like elements are changing by themselves. This injects a
@@ -61,7 +65,7 @@ def slow_scroll(page: Page, total_px: int = 1200, steps: int = 12, step_delay_ms
 def main() -> None:
     RECORDING_DIR.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, slow_mo=80)
+        browser = p.chromium.launch(headless=HEADLESS, slow_mo=80)
         context = browser.new_context(
             viewport={"width": 1920, "height": 1080},
             record_video_dir=str(RECORDING_DIR),

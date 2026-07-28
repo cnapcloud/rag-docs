@@ -75,6 +75,11 @@ JOHN_USER = os.environ["RAG_ADMIN_JOHN_USER"]
 JOHN_PASSWORD = os.environ["RAG_ADMIN_JOHN_PASSWORD"]
 DAGSTER_URL = os.environ.get("DAGSTER_URL", "https://dagster.cnapcloud.com")
 MAILPIT_URL = os.environ.get("MAILPIT_URL", "https://mailpit.cnapcloud.com")
+# Headed mode can't always get the OS window to the exact requested viewport
+# (screen/display constraints), which makes Playwright pad the recorded video
+# with black bars to fill record_video_size. Default to headless so recordings
+# always come out at the exact configured size; set HEADLESS=0 to watch it run.
+HEADLESS = os.environ.get("HEADLESS", "1") != "0"
 
 SAMPLE_DOC = Path(__file__).parent / "data" / "ai_chat_소개.pdf"
 RECORDING_DIR = Path(__file__).parent / "output"
@@ -507,11 +512,11 @@ def john_step7_dagster_run(page: Page) -> None:
 def main() -> None:
     RECORDING_DIR.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, slow_mo=80)
+        browser = p.chromium.launch(headless=HEADLESS, slow_mo=80)
         context = browser.new_context(
-            viewport={"width": 1280, "height": 720},
+            viewport={"width": 1440, "height": 810},
             record_video_dir=str(RECORDING_DIR),
-            record_video_size={"width": 1280, "height": 720},
+            record_video_size={"width": 1440, "height": 810},
             # rag-admin ingress currently serves the nginx-ingress default fallback
             # cert instead of the cnapcloud-com-tls secret (SAN=ingress.local) -
             # fix the ingress TLS binding before recording the real customer video,
