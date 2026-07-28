@@ -39,7 +39,7 @@ curl http://localhost:11434/api/tags
 ```
 
 > **대안 — OpenAI 임베딩**: GPU가 없으면 Ollama 대신 OpenAI API를 쓸 수 있다.
-> §4에서 `embedding.provider: "openai"`, `openai_api_key`, `vector_size: 1536`으로
+> §4에서 `provider.name: "openai"`, `provider.openai_api_key`, `embedding.vector_size: 1536`으로
 > 설정하면 이 단계는 생략된다 (문서 내용이 외부 API로 전송되는 점 유의).
 
 ## 3. 소스 준비
@@ -56,10 +56,12 @@ cd rag-api/docker
 `docker/settings.yaml`에서 임베딩 서버 주소만 환경에 맞게 수정한다.
 
 ```yaml
-embedding:
-  provider: "ollama"
-  model: "bge-m3"
+provider:
+  name: "ollama"
   ollama_url: "http://<Ollama 호스트 IP>:11434"   # 컨테이너에서 접근 가능한 주소
+
+embedding:
+  model: "bge-m3"
 ```
 
 - 리랭킹(`retrieval.rerank`)은 외부 API(Jina) 연동 기능이다. API 키가 없으면
