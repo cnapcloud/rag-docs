@@ -139,6 +139,11 @@ Core/Enterprise 공통이라는 뜻이다. 다만 Core와 Enterprise의 실제 �
 등 독자가 그대로 입력·복사해야 하는 문자열)은 그대로 둔다 — 그 경우는 표현의 문제가
 아니라 사실이다. `rag-admin`(콘솔)은 티어가 아니라 별도 제품이므로 이 규칙 대상이 아니다.
 
+## Git 커밋
+
+커밋 메시지에 `Co-Authored-By: Claude ...` 트레일러를 붙이지 않는다 (2026-07-28부터 적용,
+기존 히스토리는 유지). 이후 새로 만드는 커밋에만 해당.
+
 ## 참고
 
 이 표준은 Google Developer Documentation Style Guide, Microsoft Writing Style Guide의
