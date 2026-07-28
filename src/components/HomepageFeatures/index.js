@@ -14,7 +14,7 @@ const FeatureList = [
   {
     title: '개요',
     Icon: OverviewIcon,
-    description: '3-Tier 아키텍처, 기능 카탈로그',
+    description: '제품 소개, 제품 구성, 차별점',
     to: '/overview/introduction',
   },
   {
@@ -26,7 +26,7 @@ const FeatureList = [
   {
     title: '가이드',
     Icon: GuidesIcon,
-    description: 'RAG API / RAG Admin / RAG ENT 제품별 How-to',
+    description: 'RAG API / RAG Admin / RAG ENT 제품별 사용 가이드',
     to: '/guides/rag-api/kb',
   },
   {

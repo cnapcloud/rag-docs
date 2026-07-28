@@ -3,6 +3,6 @@
   "label": "Overview",
   "link": {
     "type": "generated-index",
-    "description": "사내 문서를 자동으로 수집·인덱싱하고 하이브리드 검색을 제공하는 셀프호스티드 RAG 검색 플랫폼을 소개합니다."
+    "description": "사내 문서를 자동으로 수집·인덱싱하고 하이브리드 검색을 제공하는 셀프호스팅 RAG 검색 플랫폼을 소개합니다."
   }
 }

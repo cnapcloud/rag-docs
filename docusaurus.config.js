@@ -11,7 +11,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'RAG Platform',
-  tagline: 'RAG API / RAG ENT API / RAG Admin 설치·운영·연동 가이드',
+  tagline: 'RAG API / RAG ENT / RAG Admin 설치·운영·연동 가이드',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future

@@ -7,7 +7,7 @@ sidebar_label: RAG Platform
 # RAG Platform 데모
 
 관리자(jane)와 초대받은 멤버(john) 두 시점으로 RAG Platform의 KB 접근 제어, 하이브리드 검색,
-인제스트 파이프라인이 실제 rag-admin 화면에서 어떻게 동작하는지 보여준다.
+인제스트 파이프라인이 실제 RAG Admin 화면에서 어떻게 동작하는지 보여준다.
 
 <video controls width="100%" poster="/img/video/rag-demo-poster.jpg">
   <source src="/img/video/rag-demo.mp4" type="video/mp4" />

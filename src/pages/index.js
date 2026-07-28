@@ -14,13 +14,13 @@ function HomepageHeader() {
     <header className={clsx('hero', styles.heroBanner)}>
       <div className="container">
         <Heading as="h1" className={clsx('hero__title', styles.heroTitle)}>
-          사내 문서를 검색 가능한 상태로 유지하는
+          사내 문서를 AI가 검색 가능한 지식으로
           <br />
-          셀프호스티드 RAG 검색 플랫폼
+          셀프호스팅 RAG&nbsp;Platform
         </Heading>
         <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
-          {siteConfig.tagline} — RAG Platform 하나로 완전한 셀프호스팅, 한국어 문서 환경 특화,
-          MCP를 통한 에이전트 연동부터 (Enterprise) KB 단위 RBAC·SSO까지 제공합니다.
+          검색부터 접근 제어, 중복 문서 처리, MCP 에이전트 연동, 관리 콘솔까지 하나로 완결되는
+          RAG 인프라를 제공합니다.
         </p>
         <div className={styles.buttons}>
           <Link className="button button--primary button--lg" to="/overview/introduction">
