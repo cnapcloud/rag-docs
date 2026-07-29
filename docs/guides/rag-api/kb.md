@@ -63,9 +63,10 @@ cascade 삭제된다.
 ## KB별 설정 오버라이드
 
 인제스트 설정(`ingestion`/`chunking`/`dedup`)은 `settings.yaml`에 정의된 전역값 위에,
-KB마다 다른 값을 오버라이드로 얹을 수 있다. 파이프라인은 문서를 처리할 때마다 전역값 위에
-그 KB의 오버라이드를 병합한 유효 설정을 사용한다. 아래는 오버라이드가 없을 때 적용되는
-전역 기본값이다.
+KB마다 다른 값을 오버라이드로 얹을 수 있다. 검색 설정(`retrieval`)은 `auto_merge`만 같은
+방식으로 오버라이드할 수 있다(아래 설명). 파이프라인/검색은 요청마다 전역값 위에 그 KB의
+오버라이드를 병합한 유효 설정을 사용한다. 아래는 오버라이드가 없을 때 적용되는 전역
+기본값이다.
 
 ```yaml
 ingestion:
@@ -86,18 +87,23 @@ dedup:
   minhash:       { jaccard_threshold: 0.65, title_fuzzy_threshold: 0.85 }
   chunk_compare: { chunk_match_threshold: 0.50, body_identical_threshold: 0.95,
                     body_similar_threshold: 0.75 }
+
+retrieval:
+  auto_merge: { enabled: false, merge_threshold: 0.5 }
 ```
 
 | 섹션 | 대표 키 | 설명 |
 |------|---------|------|
 | `ingestion` | `max_file_size_mb`, `html_extraction_policy`, `parser_plugins` | 업로드·수집 제한, HTML 본문 추출 정책, 파서 확장 등록 목록 |
-| `chunking` | `strategy`, `chunk_size`, `chunk_overlap` | 청킹 전략과 크기 |
+| `chunking` | `strategy`, `chunk_size`, `chunk_overlap` | 청킹 전략과 크기 — `strategy: "hierarchical"`과 그때의 `chunk_size`(리스트) 사용법은 [인제스트 파이프라인 — Chunk 단계](ingestion.md#chunk-단계) 참고 |
 | `dedup` | `simhash` / `minhash` / `chunk_compare` | 3단계 중복 감지 임계값 — 단계별 동작은 [검색·인제스트 흐름](../../concepts/data-flow.md#dedup-3단계-처리) 참고 |
+| `retrieval` | `auto_merge` | parent-child 자동 병합 on/off·임계값 — [검색 — Auto-merge](search.md#auto-merge) 참고 |
 
-전역값을 바꾸면 이후 인제스트되는 문서부터 적용된다 — 이미 색인된 문서는 재인덱싱해야 새
-설정이 반영된다. 반영 방식은 배포 형태에 따라 다르다: k8s는 ConfigMap에 reloader
-어노테이션이 있으면 저장만으로 자동 재기동되고, docker-compose는 컨테이너를 수동으로
-재기동해야 한다.
+`ingestion`/`chunking`/`dedup` 전역값을 바꾸면 이후 인제스트되는 문서부터 적용된다 — 이미
+색인된 문서는 재인덱싱해야 새 설정이 반영된다. 반영 방식은 배포 형태에 따라 다르다: k8s는
+ConfigMap에 reloader 어노테이션이 있으면 저장만으로 자동 재기동되고, docker-compose는
+컨테이너를 수동으로 재기동해야 한다. `retrieval.auto_merge`는 저장 구조가 아니라 검색
+시점 동작이라 재인덱싱 없이 다음 검색 요청부터 바로 반영된다.
 
 `ingestion` / `chunking` / `dedup` 안에서도 아래 필드는 오버라이드에서 제외된다
 (`overridable: false`) — 배포 타임에 고정되거나, 이미 저장된 기존 문서의 지문(fingerprint)과
@@ -106,6 +112,12 @@ dedup:
 - `ingestion.parser_plugins`
 - `dedup.simhash.ngram` / `num_bands` / `simhash_bits`
 - `dedup.minhash.user_words_path`
+
+`retrieval`은 반대로 `auto_merge`만 허용되고 나머지(`mode`/`top_k`/`hybrid.*`/
+`similarity.min_score`/`rerank.*`)는 전부 제외된다 — 여러 KB를 한 요청으로 합쳐 검색할 때
+병합(RRF)·리랭크가 병합된 결과 전체에 대해 정확히 한 번만 적용되므로 "이 KB의 값"이라는
+개념 자체가 성립하지 않기 때문이다. 이 필드들은 [검색](search.md)에서 설명하는 요청
+`options` 또는 전역 `settings.yaml`로만 바꿀 수 있다.
 
 ### 오버라이드 가능한 필드 확인
 
@@ -122,8 +134,9 @@ curl http://localhost:8000/api/kb/kb-01/settings/schema
 
 ### 현재 유효 설정 확인
 
-전역값과 KB 오버라이드를 병합한 결과다. `ingestion`/`chunking`/`dedup` 세 섹션만 반환하며
-인프라 자격증명 등 다른 설정은 노출되지 않는다.
+전역값과 KB 오버라이드를 병합한 결과다. `ingestion`/`chunking`/`dedup`/`retrieval` 네
+섹션만 반환하며 인프라 자격증명 등 다른 설정은 노출되지 않는다. `retrieval`은 `auto_merge`만
+이 KB의 오버라이드가 실제로 반영된 값이고, 나머지 필드는 항상 전역값 그대로다.
 
 ```bash
 curl http://localhost:8000/api/kb/kb-01/settings
@@ -147,7 +160,7 @@ curl -X PATCH http://localhost:8000/api/kb/kb-01/settings/overrides \
 
 두 API 모두 저장 전 순서대로 검증하며 위반 시 422를 반환한다.
 
-1. dot-key가 `ingestion.` / `chunking.` / `dedup.` 접두사로 시작하는지.
+1. dot-key가 `ingestion.` / `chunking.` / `dedup.` / `retrieval.` 접두사로 시작하는지.
 2. 실제 존재하는 필드 경로이고 `overridable: false`가 아닌지.
 3. 값이 필드의 타입·범위(`min`/`max`)·enum을 만족하는지.
 

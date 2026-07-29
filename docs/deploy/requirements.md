@@ -68,5 +68,5 @@ Dagster 실행 이력은 보존 정책이 없어 방치 시 계속 증가한다 
 | OpenAI 임베딩 | OpenAI API | Ollama 로컬 임베딩 사용 (기본) |
 | 커넥터 | 대상 시스템(Confluence/GitHub/웹) | 직접 업로드만 사용 |
 
-임베딩을 Ollama로 구성하고 리랭킹을 끄거나 `provider: local`(자체 호스팅)로 구성하면
+임베딩을 Ollama로 구성하고 리랭킹을 끄거나 `provider: internal`(자체 호스팅)로 구성하면
 **완전 폐쇄망 운영이 가능**하다.

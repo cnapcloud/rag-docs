@@ -426,26 +426,35 @@ chunking:
   chunk_overlap: 128
   min_chunk_chars: 30
   semantic_threshold: 0.8
-  code_chunk_lines: 40
-  code_chunk_lines_overlap: 5
+  code_max_chars: 1500
 ```
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
-| `strategy` | `"recursive"` | `recursive`: 구분자 기반 재귀 분할. `semantic`: 임베딩 유사도 기반 분할 |
-| `chunk_size` | `1024` | 청크당 최대 토큰(문자) 수 |
-| `chunk_overlap` | `128` | 인접 청크 간 겹치는 토큰(문자) 수 |
-| `min_chunk_chars` | `30` | 분할 후 이 값보다 짧은 청크는 버림 |
+| `strategy` | `"recursive"` | `recursive`: 구분자 기반 재귀 분할. `semantic`: 임베딩 유사도 기반 분할. `hierarchical`: parent-child 계층 분할 — 검색 시 [§13 retrieval](#13-retrieval)의 `auto_merge`와 짝을 이룬다 |
+| `chunk_size` | `1024` | `strategy`가 `recursive`/`semantic`이면 청크당 최대 문자 수(단일 int, 64~8192). `hierarchical`이면 큰 것→작은 것 내림차순 리스트(예: `[2048, 512, 128]`, 최소 2레벨, 각 항목 64~8192) — 마지막 값이 실제 검색 대상인 leaf 청크 크기다 |
+| `chunk_overlap` | `128` | 인접 leaf 청크 간 겹치는 문자 수. `hierarchical`에서도 leaf 레벨에만 적용되고 root/mid 레벨은 겹치지 않는다(`HierarchicalNodeParser`가 레벨별로 다른 overlap을 지원하지 않기 때문). 가장 작은 `chunk_size`(leaf) 대비 15%를 넘는 값은 저장/로드 시점에 거부된다 |
+| `min_chunk_chars` | `30` | 분할 후 이 값보다 짧은 청크는 버림. `hierarchical`에서는 이 필터로 제외된 leaf가 parent의 자식 수 계산에서도 제외된다 |
 | `semantic_threshold` | `0.8` | `semantic` 전략에서 청크를 합칠 유사도 임계값 |
-| `code_chunk_lines` | `40` | GitHub 소스코드 파일에 적용하는 줄 수 기준 청크 크기 |
-| `code_chunk_lines_overlap` | `5` | 소스코드 청크 간 겹치는 줄 수 |
+| `code_max_chars` | `1500` | GitHub 소스코드 파일(`.py`/`.ts`/`.go` 등)에 적용하는 `CodeSplitter` 청크 최대 문자 수 |
+
+**hierarchical 예시**
+
+```yaml
+chunking:
+  strategy: "hierarchical"
+  chunk_size: [2048, 512, 128]   # root -> mid -> leaf, 내림차순
+  chunk_overlap: 16              # leaf(128)의 15% 이내
+```
 
 **운영 고려사항**
 
-- `chunk_size`는 임베딩 모델의 입력 길이 제한에 맞게 설정한다. bge-m3의 토큰 제한은 8192이며, 1024는 여유롭게 맞는 크기다. `text-embedding-3-small`은 8191 제한이므로 유사하다.
-- `chunk_overlap`을 늘리면 청크 경계에서 의미가 끊어지는 문제를 줄일 수 있지만 청크 수가 늘어나 Qdrant 스토리지와 검색 비용이 증가한다. `chunk_size`의 10~15% 수준이 일반적이다.
+- `chunk_size`는 임베딩 모델의 입력 길이 제한에 맞게 설정한다. bge-m3의 토큰 제한은 8192이며, 1024는 여유롭게 맞는 크기다. `text-embedding-3-small`은 8191 제한이므로 유사하다. `hierarchical`도 레벨마다 동일한 제한을 받는다.
+- `chunk_overlap`을 늘리면 청크 경계에서 의미가 끊어지는 문제를 줄일 수 있지만 청크 수가 늘어나 Qdrant 스토리지와 검색 비용이 증가한다. `chunk_size`(hierarchical은 leaf 기준)의 10~15% 수준이 일반적이며, 15%를 넘으면 설정 자체가 거부된다.
 - `semantic` 전략은 recursive 대비 임베딩 호출이 추가로 발생해 청킹 속도가 느려진다. 대량 문서 환경에서는 비용·속도 트레이드오프를 확인한 후 사용한다.
 - `min_chunk_chars`는 목차, 헤더만 있는 청크가 인덱싱되는 것을 방지한다. 너무 높게 설정하면 유효한 짧은 내용이 버려질 수 있다.
+- `hierarchical`은 기존에 이미 인덱싱된 문서를 소급 재청킹하지 않는다 — 전략을 바꾸면 그 이후 새로 업로드/재인덱싱하는 문서부터 적용된다.
+- 이 섹션 전체는 KB별로 오버라이드 가능하다 — [API Guide §3 KB 설정 오버라이드](api-guide.md#kb-설정-오버라이드) 참고.
 
 ---
 
@@ -483,7 +492,7 @@ embedding:
 
 ## 13. retrieval
 
-검색 방식과 파라미터 설정. 요청 시 `options` 필드로 오버라이드 가능하다.
+검색 방식과 파라미터 설정. `auto_merge`를 제외한 나머지는 검색 요청의 `options` 필드로 요청 단위 오버라이드가 가능하다(우선순위: 요청값 > 이 전역 설정값). `auto_merge`만 KB 단위로도 오버라이드할 수 있다 — [API Guide §3 KB 설정 오버라이드](api-guide.md#kb-설정-오버라이드) 참고. 여러 KB를 한 요청으로 합쳐 검색할 때 병합(RRF)과 리랭크는 병합된 결과 전체에 대해 정확히 한 번만 일어나므로, `auto_merge` 외 나머지 필드는 KB별로 다른 값을 가질 수 없다.
 
 ```yaml
 retrieval:
@@ -502,6 +511,9 @@ retrieval:
     top_n: 3
     timeout_sec: 5
     fallback_on_error: true
+  auto_merge:
+    enabled: false
+    merge_threshold: 0.5
 ```
 
 ### 기본 설정
@@ -553,6 +565,23 @@ retrieval:
 - `fallback_on_error: true`를 유지하면 Jina API가 일시 다운돼도 검색 자체는 중단되지 않는다. 다만 리랭킹 품질 없이 RRF 점수로 반환된다.
 - `api_key`는 `RERANKER_API_KEY` 환경변수로 주입한다.
 - `top_n`은 `top_k`보다 작아야 의미가 있다. 리랭킹은 `top_k` 결과를 재순위 매긴 뒤 상위 `top_n`개만 반환한다.
+
+### auto_merge 설정
+
+parent-child 계층 청킹([§11 chunking](#11-chunking)의 `strategy: "hierarchical"`)으로 인덱싱된 문서에서, 검색된 leaf 청크들을 상위(parent) 텍스트로 자동 병합해 반환할지 결정한다. `chunking.strategy`(저장 구조)와는 독립된 별도 스위치다 — 구조는 hierarchical로 저장해두고 병합만 따로 껐다 켤 수 있다.
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `enabled` | `false` | 자동 병합 활성화 여부 |
+| `merge_threshold` | `0.5` | 같은 parent 아래 검색된 child 비율이 이 값 이상이면 parent 텍스트로 병합. 미만이면 개별 child 결과를 그대로 반환 |
+
+**운영 고려사항 (auto_merge)**
+
+- `chunking.strategy`가 `hierarchical`이 아닌 문서에는 `parent_chunk_id`가 없으므로 `enabled: true`여도 영향이 없다.
+- `merge_threshold`를 낮추면 더 쉽게 병합돼 문맥은 풍부해지지만 반환 텍스트 길이가 늘어난다. 높이면 더 정밀한 개별 청크가 유지된다.
+- 3-level 이상 계층에서는 레벨을 타고 올라가며 반복 병합되고, 한 레벨에서 threshold 미달로 병합에 실패한 결과는 상위 레벨에서 재시도되지 않는다.
+- 검색 응답의 `merged`/`parent_chunk_id` 필드는 [API Guide §13 검색 — 응답 필드](api-guide.md#응답-필드)에서 다룬다.
+- `retrieval` 중 이 필드만 KB별로 오버라이드 가능하다(`retrieval.auto_merge.enabled`, `retrieval.auto_merge.merge_threshold`) — [API Guide §3](api-guide.md#kb-설정-오버라이드) 참고.
 
 ---
 

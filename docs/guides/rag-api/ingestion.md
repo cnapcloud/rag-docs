@@ -11,8 +11,10 @@ Embed → Upsert → Meta 7단계를 거쳐 검색 가능한 상태가 된다. �
 정리한다.
 
 `ingestion` / `chunking` / `dedup` 세 섹션은 [KB별로 오버라이드](kb.md#kb별-설정-오버라이드)할
-수 있다. 반면 `provider` / `embedding`은 오버라이드 대상이 아닌 전역 전용 설정이다 — 임베딩
-모델이 KB마다 다르면 Qdrant 컬렉션의 벡터 차원이 KB마다 달라져야 하기 때문이다.
+수 있다(검색 설정 `retrieval`은 `auto_merge`만 같은 방식으로 오버라이드 가능 —
+[검색 — Auto-merge](search.md#auto-merge) 참고). 반면 `provider` / `embedding`은 오버라이드
+대상이 아닌 전역 전용 설정이다 — 임베딩 모델이 KB마다 다르면 Qdrant 컬렉션의 벡터 차원이
+KB마다 달라져야 하기 때문이다.
 
 ---
 
@@ -183,18 +185,17 @@ score(A, C)     = raw_score(A, C) * chunk_ratio
 
 ## Chunk 단계
 
-파싱된 문서를 얼마나 잘게 나눠 임베딩할지 정한다 — 일반 문서는 `recursive`/`semantic` 중
-선택하고, 코드 파일은 항상 전용 분할기를 쓴다.
+파싱된 문서를 얼마나 잘게 나눠 임베딩할지 정한다 — 일반 문서는 `recursive`/`semantic`/
+`hierarchical` 중 선택하고, 코드 파일은 항상 전용 분할기를 쓴다.
 
 ```yaml
 chunking:
-  strategy: "recursive"   # recursive | semantic
-  chunk_size: 1024        # 64-8192
-  chunk_overlap: 128      # 0-8191
+  strategy: "recursive"   # recursive | semantic | hierarchical
+  chunk_size: 1024        # 64-8192 (hierarchical이면 내림차순 리스트, 예: [2048, 512, 128])
+  chunk_overlap: 128      # 0-8191, leaf(가장 작은 chunk_size) 대비 15% 이내
   min_chunk_chars: 30     # 1-2000
   semantic_threshold: 0.8 # 0.0-1.0, semantic 전략에서만 사용
-  code_chunk_lines: 40           # 5-500
-  code_chunk_lines_overlap: 5    # 0-499
+  code_max_chars: 1500    # 100-20000
 ```
 
 ### 청킹 전략
@@ -203,15 +204,33 @@ chunking:
 |------|------|
 | `recursive` | `SentenceSplitter` — `chunk_size`/`chunk_overlap` 글자 수 기준 분할. 추가 API 호출 없음 |
 | `semantic` | `SemanticSplitterNodeParser` — 문장 임베딩 유사도가 `semantic_threshold`(백분위) 밑으로 떨어지는 지점에서 분할. 청킹 단계에서 임베딩 모델을 호출하므로 `recursive`보다 느리고 비용이 든다 |
+| `hierarchical` | `HierarchicalNodeParser` — root부터 leaf까지 여러 레벨로 분할해 parent-child 관계를 저장한다. leaf만 임베딩·검색 대상이고, 검색 시 매칭된 child 비율이 임계값 이상이면 parent 텍스트로 자동 병합해 반환할 수 있다 — 검색 쪽 동작은 [검색 — Auto-merge](search.md#auto-merge) 참고 |
 
 분할 후 `min_chunk_chars`보다 짧은 청크는 (코드/atomic 청크를 포함해) 모두 버려진다 — 문장
 경계가 애매해 생기는 한두 글자짜리 파편이 검색 인덱스에 섞이는 것을 막기 위한 하한선이다.
+`hierarchical`에서는 이렇게 버려진 leaf가 parent의 자식 수 계산에서도 제외된다.
+
+### hierarchical 전략
+
+```yaml
+chunking:
+  strategy: "hierarchical"
+  chunk_size: [2048, 512, 128]   # root -> mid -> leaf, 반드시 내림차순, 최소 2레벨
+  chunk_overlap: 16              # leaf(128)의 15% 이내 — 초과하면 저장 시점에 거부
+```
+
+`chunk_overlap`은 leaf 레벨에만 적용된다(root/mid는 겹치지 않음) —
+`HierarchicalNodeParser`가 레벨별로 다른 overlap을 지원하지 않기 때문이다. 값이 가장 작은
+`chunk_size`(leaf)의 15%를 넘으면 인접 leaf가 거의 통째로 겹치는 상태로 조용히 색인되는
+문제가 있어, 전역 설정 로드와 KB 오버라이드 저장 양쪽 모두에서 거부된다. 이미 인덱싱된
+문서는 전략을 바꿔도 소급 재청킹되지 않는다 — 이후 새로 업로드/재인덱싱하는 문서부터
+적용된다.
 
 ### 코드 파일 처리
 
 `strategy`는 코드/설정 파일이 아닌 일반 문서에만 적용된다 — `.py`/`.ts`/`.yaml` 같은
-확장자는 `strategy` 설정과 무관하게 항상 `CodeSplitter`로 자동 라우팅되고,
-`code_chunk_lines`/`code_chunk_lines_overlap`(줄 수 기준)으로 크기를 조절한다.
+확장자는 `strategy` 설정과 무관하게 항상 `CodeSplitter`로 자동 라우팅되고, `code_max_chars`
+(문자 수 기준)로 크기를 조절한다.
 
 ## Embed 단계
 

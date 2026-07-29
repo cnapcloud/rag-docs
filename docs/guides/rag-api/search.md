@@ -83,10 +83,10 @@ dense 벡터만으로 코사인 유사도 검색을 한다. `alpha`는 무시되
 retrieval:
   rerank:
     enabled: false
-    provider: "jina"        # jina | local
+    provider: "jina"        # jina | internal
     api_key: ""
     model: "jina-reranker-v2-base-multilingual"
-    base_url: ""             # provider=local일 때만 사용
+    base_url: ""             # provider=internal일 때만 사용
     top_n: 3
     timeout_sec: 5
     fallback_on_error: true
@@ -98,10 +98,37 @@ retrieval:
 | provider | 설명 |
 |----------|------|
 | `jina` | Jina의 rerank API(`api_key` 필요) |
-| `local` | Cohere-compatible 스키마를 그대로 쓰는 자체 호스팅 리랭크 서버. `base_url`을 지정해야 하며, 없으면 `ConfigError` |
+| `internal` | Cohere-compatible 스키마를 그대로 쓰는 자체 호스팅 리랭크 서버. `base_url`을 지정해야 하며, 없으면 `ConfigError` |
 
 리랭커 API 호출이 실패하면(타임아웃, 5xx 등) `fallback_on_error: true`일 때 예외를 삼키고
 기존 순위 그대로 상위 `top_n`개를 반환한다 — `false`면 예외가 그대로 전파된다.
+
+## Auto-merge
+
+```yaml
+retrieval:
+  auto_merge:
+    enabled: false
+    merge_threshold: 0.5
+```
+
+[`chunking.strategy: "hierarchical"`](ingestion.md#hierarchical-전략)로 인덱싱된 문서에서,
+검색된 leaf 청크들을 상위(parent) 텍스트로 자동 병합해 반환할지 결정한다. 같은 parent
+아래 매칭된 child 비율이 `merge_threshold` 이상이면 parent 텍스트로 병합하고, 미만이면
+개별 child 결과를 그대로 반환한다. 3-level 이상 계층에서는 레벨을 타고 올라가며 반복
+병합되며, 한 레벨에서 threshold 미달로 실패한 결과는 상위 레벨에서 재시도되지 않는다.
+`chunking.strategy`(저장 구조)와는 독립된 별도 스위치라 구조는 hierarchical로 저장해두고
+병합만 따로 껐다 켤 수 있다.
+
+병합된 결과는 응답에서 `merged: true`, `chunk_index: null`로 표시되고, 병합 여부와
+무관하게 `parent_chunk_id`에 상위 청크 ID가 채워진다(root거나 hierarchical이 아니면
+`null`).
+
+`auto_merge`는 검색 요청의 `options`로 오버라이드할 수 없다 — 오직 설정(전역 또는
+[KB 오버라이드](kb.md#kb별-설정-오버라이드))으로만 제어한다. 위 hybrid/similarity/rerank
+설정과 달리, `retrieval` 중 KB별로 오버라이드 가능한 건 `auto_merge`뿐이다 — 나머지는
+여러 KB를 한 요청으로 합쳐 검색할 때 병합·리랭크가 요청 전체에 대해 정확히 한 번만
+적용되므로 KB별로 다른 값을 가질 수 없다.
 
 ## 복수 KB 검색
 

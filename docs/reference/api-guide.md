@@ -195,11 +195,13 @@ Qdrant 컬렉션 → S3 오브젝트 → Postgres 메타데이터 순으로 삭�
 
 ### KB 설정 오버라이드
 
-KB 단위로 인제스트 파이프라인 설정(`ingestion`/`chunking`/`dedup`)을 전역 `settings.yaml` 값과 다르게 오버라이드할 수 있다. 오버라이드는 KB별로 저장되며, 파이프라인은 문서를 처리할 때마다 전역값 위에 그 KB의 오버라이드를 병합한 유효 설정을 사용한다.
+KB 단위로 인제스트 파이프라인 설정(`ingestion`/`chunking`/`dedup`)과 검색 설정 일부(`retrieval.auto_merge`)를 전역 `settings.yaml` 값과 다르게 오버라이드할 수 있다. 오버라이드는 KB별로 저장되며, 파이프라인/검색은 요청마다 전역값 위에 그 KB의 오버라이드를 병합한 유효 설정을 사용한다.
+
+`retrieval` 섹션 중에서는 `auto_merge`(parent-child 자동 병합, [설정 §13 retrieval](configuration.md#13-retrieval))만 오버라이드 가능하다. `mode`/`top_k`/`hybrid.*`/`similarity.min_score`/`rerank.*`는 여러 KB를 한 번에 검색할 때 병합(RRF)·리랭크가 병합된 결과 전체에 대해 정확히 한 번만 적용되는 값이라 특정 KB 하나의 설정을 쓴다는 개념이 성립하지 않는다 — 전역 설정값 또는 검색 요청의 `options`([13장 검색](#13-검색))로만 바꿀 수 있다.
 
 #### 유효 설정 조회
 
-전역값과 KB 오버라이드를 병합한 현재 유효 설정을 반환한다. `ingestion`/`chunking`/`dedup` 세 섹션만 반환하며, 인프라 자격증명 등 다른 설정 섹션은 노출되지 않는다.
+전역값과 KB 오버라이드를 병합한 현재 유효 설정을 반환한다. `ingestion`/`chunking`/`dedup`/`retrieval` 네 섹션만 반환하며, 인프라 자격증명 등 다른 설정 섹션은 노출되지 않는다. `retrieval`은 `auto_merge`만 이 KB의 오버라이드가 실제로 반영된 값이고, 나머지 필드는 항상 전역값 그대로 보여주는 참고용이다.
 
 ```bash
 curl http://localhost:8000/api/kb/kb-01/settings
@@ -209,7 +211,8 @@ curl http://localhost:8000/api/kb/kb-01/settings
 {
   "ingestion": { "max_file_size_mb": 50, "min_content_chars": 200, "html_extraction_policy": "trafilatura", "...": "..." },
   "chunking": { "strategy": "recursive", "chunk_size": 512, "chunk_overlap": 64, "...": "..." },
-  "dedup": { "enabled": true, "...": "..." }
+  "dedup": { "enabled": true, "...": "..." },
+  "retrieval": { "mode": "hybrid", "top_k": 5, "auto_merge": { "enabled": true, "merge_threshold": 0.6 }, "...": "..." }
 }
 ```
 
@@ -237,12 +240,20 @@ curl http://localhost:8000/api/kb/kb-01/settings/schema
     "dedup.simhash.ngram": {
       "type": "int", "default": 3, "overridable": false,
       "description": "기존 문서 지문과 계산 방식이 달라져 재인덱싱 없이는 비교 불가능해짐", "group": "dedup"
+    },
+    "retrieval.auto_merge.enabled": {
+      "type": "bool", "default": false, "overridable": true,
+      "description": "Auto Merge Enabled", "group": "auto_merge"
+    },
+    "retrieval.hybrid.alpha": {
+      "type": "float", "default": 0.5, "overridable": false,
+      "description": "Alpha (Hybrid)", "group": "hybrid"
     }
   }
 }
 ```
 
-`ingestion.parser_plugins`, `dedup.simhash.ngram`/`num_bands`/`simhash_bits`, `dedup.minhash.user_words_path` 등 배포 타임에 고정되거나 기존 저장된 데이터와의 호환성 때문에 KB별로 바꿀 수 없는 필드는 `overridable: false`로 표시된다 — 이 필드를 오버라이드 저장 API에 보내면 명시적으로 거부된다(조용히 무시하지 않음).
+`ingestion.parser_plugins`, `dedup.simhash.ngram`/`num_bands`/`simhash_bits`, `dedup.minhash.user_words_path` 등 배포 타임에 고정되거나 기존 저장된 데이터와의 호환성 때문에 KB별로 바꿀 수 없는 필드는 `overridable: false`로 표시된다 — 이 필드를 오버라이드 저장 API에 보내면 명시적으로 거부된다(조용히 무시하지 않음). `retrieval.mode`/`top_k`/`hybrid.*`/`similarity.min_score`/`rerank.*`도 같은 `overridable: false`지만 이유는 다르다 — 배포 시점에 고정되는 값이라서가 아니라, 여러 KB를 한 요청으로 합쳐 검색할 때 병합·리랭크가 요청 전체에 대해 정확히 한 번만 일어나 "이 KB의 값"이라는 게 애초에 정의되지 않기 때문이다(`retrieval.auto_merge`만 예외).
 
 이 스키마에 자체 확장 필드(`ingestion.image_captioning.*`, `ingestion.pdf_ocr_fallback.*`, `ingestion.table_layout.*`)도 함께 포함해 반환한다. [ENT]
 
@@ -280,7 +291,7 @@ curl -X PATCH http://localhost:8000/api/kb/kb-01/settings/overrides \
 
 두 API 모두 저장 전 아래 순서로 검증하며, 위반 시 HTTP 422를 반환한다.
 
-1. dot-key가 `ingestion.` / `chunking.` / `dedup.` 접두사로 시작하는지 (아니면 거부 — 인프라 자격증명 등 다른 설정 섹션 보호)
+1. dot-key가 `ingestion.` / `chunking.` / `dedup.` / `retrieval.` 접두사로 시작하는지 (아니면 거부 — 인프라 자격증명 등 다른 설정 섹션 보호)
 2. 실제 존재하는 필드 경로인지, 그리고 `overridable: false`로 표시된 필드가 아닌지
 3. 값 자체가 필드의 타입/범위(`min`/`max`)/enum을 만족하는지
 
@@ -1293,6 +1304,53 @@ curl -X POST http://localhost:8000/api/search \
 | `similarity.min_score` | settings | 반환할 최소 코사인 유사도 (0.0~1.0). similarity 모드에서만 적용 |
 | `rerank.enabled` | true | 리랭킹 활성화 여부 |
 | `rerank.top_n` | settings | 리랭킹 후 반환할 결과 수 |
+
+`auto_merge`(parent-child 자동 병합)는 이 `options`로 요청 단위 오버라이드를 할 수 없다 — 설정(전역 `settings.yaml` 또는 [KB 오버라이드](#kb-설정-오버라이드))로만 켜고 끈다.
+
+### 응답 필드
+
+```json
+{
+  "query": "검색어",
+  "results": [
+    {
+      "chunk_id": "b59168c41e5e4a0d:1",
+      "kb_id": "kb-01",
+      "doc_id": "b59168c41e5e4a0d",
+      "title": "report.pdf",
+      "source_type": "s3",
+      "source": "report.pdf",
+      "doc_type": "pdf",
+      "chunk_index": null,
+      "page_num": 4,
+      "page_label": "4",
+      "text": "...",
+      "score": 0.0164,
+      "rerank_score": 0.91,
+      "updated_at": "2026-06-19T14:32:00+09:00",
+      "merged": true,
+      "parent_chunk_id": "b59168c41e5e4a0d:0"
+    }
+  ],
+  "meta": {
+    "total_candidates": 42,
+    "returned": 10,
+    "search_mode": "hybrid",
+    "score_threshold": 0.0,
+    "reranked": true,
+    "rerank_provider": "jina",
+    "rerank_fallback": false,
+    "latency_ms": 320
+  }
+}
+```
+
+| 필드 | 설명 |
+|------|------|
+| `merged` | `true`면 개별 청크가 아니라 parent-child 자동 병합(auto-merge)으로 만들어진 상위 텍스트다. `chunking.strategy="hierarchical"`로 인덱싱된 문서에서 `retrieval.auto_merge.enabled`가 켜져 있고, 같은 parent 아래 매칭된 child 비율이 `merge_threshold` 이상일 때 발생한다 — [설정 §11 chunking](configuration.md#11-chunking), [§13 retrieval](configuration.md#13-retrieval) 참고 |
+| `chunk_index` | `merged=true`인 결과는 여러 leaf 청크를 합친 것이라 단일 시퀀스 위치가 없으므로 `null` |
+| `parent_chunk_id` | 이 청크가 속한 상위(parent) 청크 ID. root 청크이거나 `hierarchical` 전략이 아니면 `null` |
+| `meta.score_threshold` | 실제 적용된 `similarity.min_score`. hybrid 모드에서는 항상 `0.0`(미적용) |
 
 ### 모드별 점수(score) 및 복수 KB 집계 방식
 

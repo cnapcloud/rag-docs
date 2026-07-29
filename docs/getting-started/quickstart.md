@@ -77,7 +77,7 @@ embedding:
 
 문서 내용이 외부 API로 전송되는 점 유의.
 
-- 리랭킹(`retrieval.rerank`)은 `provider: "jina"`(외부 API) 또는 `provider: "local"`(자체
+- 리랭킹(`retrieval.rerank`)은 `provider: "jina"`(외부 API) 또는 `provider: "internal"`(자체
   호스팅 Cohere-호환 rerank 서버, `base_url`로 지정)을 지원한다. 둘 다 쓰지 않으려면
   `enabled: false`로 두어도 검색은 정상 동작한다 (RRF 점수 사용).
 
