@@ -57,7 +57,7 @@ cd rag-api/docker
 ```yaml
 provider:
   name: "ollama"
-  ollama_url: "http://<Ollama 호스트 IP>:11434"   # 컨테이너에서 접근 가능한 주소
+  ollama_url: "http://<ollama-host-ip>:11434"   # 컨테이너에서 접근 가능한 주소
 
 embedding:
   model: "bge-m3"
