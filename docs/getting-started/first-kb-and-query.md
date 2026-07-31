@@ -30,7 +30,7 @@ curl -X POST http://localhost:8000/api/kb \
 
 ```bash
 curl -X POST http://localhost:8000/api/kb/kb-eval/docs/upload \
-  -F "file=@./sample.pdf"
+  -F "file=@./data/sample.pdf"
 ```
 
 응답에 `doc_id`가 들어있다 — 다음 단계에서 이 값으로 상태를 확인한다.
@@ -60,7 +60,7 @@ curl http://localhost:8000/api/kb/kb-eval/docs/{doc_id}/status
 ```bash
 curl -X POST http://localhost:8000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "문서 내용에 대한 질문", "kb_ids": ["kb-eval"]}'
+  -d '{"query": "오래된 참나무", "kb_ids": ["kb-eval"]}'
 ```
 
 응답에 관련 청크가 점수·출처와 함께 반환되면 성공이다. 이 결과가 어떻게 만들어지는지
