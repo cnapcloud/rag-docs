@@ -47,7 +47,7 @@ connector fetch:
                             │                          │                  │
                             ▼                   (older version)           ▼
                         indexed                        │                failed
-                            │                           ▼
+                            │                          ▼
                             │                       outdated
                             │
                       ┌─────┴───────────────────────────────┐

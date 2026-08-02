@@ -168,8 +168,8 @@ table path: crop region                  body path: mask same region (fill white
 | 1.2 | 3.4 | 5.6   |                   | Heading                      |
 +-------------------+                   | Intro paragraph text...      |
   content_type: "table"                 | [ masked ]                   |
-                                         | Closing paragraph text...    |
-                                         +------------------------------+
+                                        | Closing paragraph text...    |
+                                        +------------------------------+
                                            content_type: "ocr_text"
 ```
 
