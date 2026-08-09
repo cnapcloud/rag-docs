@@ -9,15 +9,34 @@ sidebar_label: RAG Platform
 관리자(jane)와 초대받은 멤버(john) 두 시점으로 RAG Platform의 KB 접근 제어, 하이브리드 검색,
 인제스트 파이프라인이 실제 RAG Admin 화면에서 어떻게 동작하는지 보여준다.
 
-<iframe
-  width="100%"
-  height="420"
-  src="https://www.youtube.com/embed/rbIDDTx5bKI"
-  title="Rag Platform 데모"
-  frameBorder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  allowFullScreen
-></iframe>
+<div
+  style={{
+    minWidth: 0,
+    position: 'relative',
+    aspectRatio: '16 / 9',
+    borderRadius: '14px',
+    overflow: 'hidden',
+  }}
+>
+  <iframe
+    src="https://www.youtube.com/embed/rbIDDTx5bKI"
+    title="RAG Platform 데모"
+    loading="lazy"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      display: 'block',
+      border: 'none',
+    }}
+  ></iframe>
+</div>
+
 ## 시연 순서
 
 ### 1. 관리자(jane) 시점
