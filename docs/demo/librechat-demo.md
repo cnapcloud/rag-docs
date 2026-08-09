@@ -9,10 +9,15 @@ sidebar_label: LibreChat 연동
 LibreChat(CNAP AI Chat)이 MCP로 rag-api의 `search` 툴을 호출해 자연어 질문에 KB 문서 근거
 답변을 생성하고, 그 호출이 Langfuse·Grafana로 실시간 관측되는 흐름을 보여준다.
 
-<video controls width="100%" poster="/img/video/librechat-rag-poster.jpg">
-  <source src="/img/video/librechat-rag.mp4" type="video/mp4" />
-  브라우저가 비디오 태그를 지원하지 않는다 — [다운로드](/img/video/librechat-rag.mp4)로 직접 확인한다.
-</video>
+<iframe
+  width="100%"
+  height="420"
+  src="https://www.youtube.com/embed/__oBtce6EWg"
+  title="LibreChat 연동 데모"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  allowFullScreen
+></iframe>
 
 ## 시연 순서
 - RAG Admin Documents에서 인제스트된 고양이 문서를 확인하고, Query Playground에서
