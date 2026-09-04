@@ -733,7 +733,7 @@ authz:
 | 키 | 기본값 | 설명 |
 |----|--------|------|
 | `super_admin_role` | `"rag-super-admin"` | JWT `groups` claim에서 슈퍼관리자 여부를 판정하는 그룹명 |
-| `kb_creator_roles` | `["rag-kb-creator"]` | `POST /api/kb`로 KB를 생성할 수 있는 `groups` 값 목록. 하나라도 일치하면 허용. 빈 리스트(코드 기본값)면 super-admin만 생성 가능(fail-closed). 문자열 하나만 줘도 1-원소 리스트로 해석됨 |
+| `kb_creator_roles` | `["rag-kb-creator"]` | `POST /api/kb`로 KB를 생성할 수 있는 `groups` 값 목록. 하나라도 일치하면 허용. 빈 리스트(코드 기본값)면 super-admin만 생성 가능(fail-closed). `["*"]`이면 인증된 모든 사용자 허용(`groups` 무관) — `"*"`가 포함되면 다른 값은 무시되고 `["*"]`로 정규화됨. 문자열 하나만 줘도 1-원소 리스트로 해석됨 |
 | `max_kb_count` | `3` | 사용자당 생성 가능한 KB 수 상한. `0` = 무제한. super-admin은 우회. 사용자별로는 `PATCH /api/users/{user_id}/quota`(→ `user_profile.max_kb_count`)로 오버라이드 |
 | `max_docs_count` | `5` | KB당 비삭제 문서 수 상한. 신규 문서 인제스트(업로드·배치·커넥터 sync) 직전에 검사, 도달 시 HTTP 403. `0` = 무제한, super-admin 우회. 이 값은 초기값이며 `PATCH /api/admin/config`로 런타임에 덮어쓸 수 있다 |
 | `role_cache_ttl_seconds` | `60` | Redis에 캐시하는 KB 역할·접근 가능 KB 목록의 TTL. 역할 변경 시에는 캐시가 즉시 무효화되므로, 이 TTL은 무효화가 누락된 경우의 보수적 상한이다 |

@@ -183,7 +183,7 @@ Qdrant 컬렉션 → S3 오브젝트 → Postgres 메타데이터 순으로 삭�
 |--------|------|-----------|
 | GET | `/api/kb` | 인증만 (본인이 role을 가진 KB만 반환, super-admin은 전체) |
 | GET | `/api/kb/{kb_id}` | viewer |
-| POST | `/api/kb` | `authz.kb_creator_roles` 중 하나 보유 (미설정 시 super-admin만) + KB 수 `max_kb_count` 미만. 생성자가 자동으로 owner |
+| POST | `/api/kb` | `authz.kb_creator_roles` 중 하나 보유 (`[]` = super-admin만, `["*"]` = 인증된 모든 사용자) + KB 수 `max_kb_count` 미만. 생성자가 자동으로 owner |
 | PATCH | `/api/kb/{kb_id}` | admin |
 | DELETE | `/api/kb/{kb_id}` | owner |
 
