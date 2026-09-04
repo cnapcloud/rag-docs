@@ -57,7 +57,7 @@ cd rag-api/docker
 ```yaml
 provider:
   name: "ollama"
-  ollama_url: "http://<ollama-host-ip>:11434"   # 컨테이너에서 접근 가능한 주소
+  url: "http://<ollama-host-ip>:11434"   # 컨테이너에서 접근 가능한 주소
 
 embedding:
   model: "bge-m3"
@@ -68,7 +68,7 @@ GPU 서버 없이 OpenAI API로 대체하는 경우 다음과 같이 설정한�
 ```yaml
 provider:
   name: "openai"
-  openai_api_key: "<발급받은 API 키>"
+  api_key: "<발급받은 API 키>"
 
 embedding:
   model: "text-embedding-3-small"

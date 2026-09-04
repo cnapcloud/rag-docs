@@ -61,9 +61,11 @@ Keycloak 클라이언트·그룹 설정, `oidc`/`authz` 섹션의 상세 필드�
 # 서버 생존 여부
 curl http://localhost:8000/health
 
-# 인프라 헬스체크 (Qdrant / Redis / S3 / Ollama)
+# 인프라 헬스체크 (Qdrant / Redis / Postgres / S3 + 임베딩 provider)
 curl http://localhost:8000/ready
 ```
+
+`/ready` 응답은 `{ "status": "ready", "provider": "<이름>", "checks": { ... } }` 형태다. `checks`의 provider 항목 키는 설정된 `provider.name`(`ollama` / `openai` / `jina` / 커스텀)이며, `{provider.url}/v1/models` 도달성으로 판정한다.
 
 ---
 
@@ -181,9 +183,11 @@ Qdrant 컬렉션 → S3 오브젝트 → Postgres 메타데이터 순으로 삭�
 |--------|------|-----------|
 | GET | `/api/kb` | 인증만 (본인이 role을 가진 KB만 반환, super-admin은 전체) |
 | GET | `/api/kb/{kb_id}` | viewer |
-| POST | `/api/kb` | 인증만 (생성자가 자동으로 owner) |
+| POST | `/api/kb` | `authz.kb_creator_roles` 중 하나 보유 (미설정 시 super-admin만) + KB 수 `max_kb_count` 미만. 생성자가 자동으로 owner |
 | PATCH | `/api/kb/{kb_id}` | admin |
 | DELETE | `/api/kb/{kb_id}` | owner |
+
+`POST /api/kb`는 `kb_creator_roles`에 해당하지 않거나 생성자의 KB 수가 상한에 도달하면 HTTP 403이다. 상한은 `authz.max_kb_count`(전역) 또는 `user_profile.max_kb_count`(사용자별 오버라이드, [§6.5](#65-사용자별-kb-쿼터))이며, 두 검사 모두 `kb_authz_enabled`와 무관하게 적용되고 super-admin은 우회한다.
 
 응답 예시 (`kb_authz_enabled=true`인 경우 `my_role` 포함):
 
@@ -435,7 +439,7 @@ Keycloak 연결 실패, 미설정, 대상 없음 등 모든 경우 예외 없이
 
 ### 6.2 내 정보
 
-`GET /api/me` — 인증만 필요 (역할 제한 없음). 호출자 자신의 식별 정보와 전역 `kb_authz_enabled` 상태를 함께 반환한다.
+`GET /api/me` — 인증만 필요 (역할 제한 없음). 호출자 자신의 식별 정보, 전역 `kb_authz_enabled` 상태, KB 생성 권한/쿼터를 함께 반환한다.
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/me
@@ -447,9 +451,14 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/me
   "email": "alice@example.com",
   "preferred_username": "alice",
   "is_super_admin": false,
-  "kb_authz_enabled": true
+  "can_create_kb": true,
+  "kb_authz_enabled": true,
+  "max_kb_count": 3,
+  "kb_count": 1
 }
 ```
+
+`can_create_kb`는 `kb_creator_roles` 보유 여부, `max_kb_count`/`kb_count`는 이 사용자에게 적용되는 KB 생성 상한과 현재 보유 수다 (super-admin은 상한을 우회하므로 참고용). 프론트엔드의 "KB 생성" 버튼 노출·비활성화에 사용한다.
 
 ### 6.3 사용자 삭제 (Deprovisioning)
 
@@ -481,19 +490,40 @@ curl -X DELETE "http://localhost:8000/api/users?email=user@example.com" \
 
 ### 6.4 시스템 설정
 
-`GET /api/admin/config`, `PATCH /api/admin/config` — super-admin 전용. 현재 `kb_authz_enabled` 플래그 하나만 노출한다 (RBAC 기능 전체 on/off 스위치).
+`GET /api/admin/config`, `PATCH /api/admin/config` — super-admin 전용. 런타임에 덮어쓸 수 있는 시스템 설정을 노출한다.
+
+- `kb_authz_enabled` — RBAC 기능 전체 on/off 스위치
+- `max_docs_count` — KB당 비삭제 문서 수 상한 ([설정 §19](configuration.md#19-authz-ent)의 초기값을 런타임 값으로 대체)
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/admin/config
 
 curl -X PATCH http://localhost:8000/api/admin/config \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"kb_authz_enabled": true}'
+  -d '{"kb_authz_enabled": true, "max_docs_count": 100}'
 ```
 
-응답: `{ "kb_authz_enabled": true }`
+응답: `{ "kb_authz_enabled": true, "max_docs_count": 100 }`. PATCH는 전달한 필드만 갱신한다.
 
-`false` → `true`로 전환하면 owner가 없는 모든 KB에 대해 요청한 super-admin이 owner로 자동 등록된다 (backfill).
+`kb_authz_enabled`를 `false` → `true`로 전환하면 owner가 없는 모든 KB에 대해 요청한 super-admin이 owner로 자동 등록된다 (backfill).
+
+### 6.5 사용자별 KB 쿼터
+
+`PATCH /api/users/{user_id}/quota` — super-admin 전용. 특정 사용자의 KB 생성 상한을 전역 `authz.max_kb_count`와 다르게 지정하거나 해제한다.
+
+```bash
+curl -X PATCH http://localhost:8000/api/users/u-456/quota \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"max_kb_count": 10}'
+```
+
+| 필드 | 설명 |
+|------|------|
+| `max_kb_count` | 이 사용자의 KB 생성 상한. `null` = 오버라이드 해제(전역값 사용), `0` = 이 사용자만 무제한 |
+
+응답 (HTTP 200): `{ "user_id": "u-456", "max_kb_count": 10 }`
+
+대상 사용자의 프로필 레코드가 아직 없으면(로그인·초대 이력 없음) HTTP 404.
 
 ---
 
@@ -551,9 +581,16 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/docs/{doc_id}
 
 **동일 파일명 재업로드**: 같은 KB에 같은 파일명을 다시 업로드하면 기존 `doc_id`를 재사용하고 새 내용으로 재인덱싱됩니다. 커넥터 문서의 경우 `source_uri`가 같으면 동일하게 기존 `doc_id`를 재사용합니다. 어느 경우든 문서가 현재 처리 중인 경우(`pending`, `uploading`, `running`, `deleting`) HTTP 409를 반환합니다.
 
-### 배치 업로드 응답 (HTTP 202)
+### 배치 업로드 응답
 
-파일별 결과를 `results` 배열로 반환합니다. 일부 파일이 실패해도 나머지는 처리됩니다.
+모든 파일을 순회하며 파일별 결과를 `results` 배열(제출 순서와 1:1)로 반환합니다.
+
+| 상황 | 응답 |
+|------|------|
+| 전부 성공 | HTTP 202, `{ "results": [...] }` |
+| 일부라도 실패 | HTTP 403 (문서 수 상한 등 인제스트 훅 차단) 또는 HTTP 422 (지원하지 않는 형식, S3 오류 등). 본문 `{ "results": [...], "detail": "<첫 실패 사유>" }` |
+
+실패 시에도 그 전에 업로드된 파일은 그대로 유지됩니다. 훅 차단(403)이면 차단된 파일 이후 항목은 `"error": "Skipped: batch stopped at ..."`로 표시됩니다.
 
 ```json
 {
@@ -561,7 +598,8 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/docs/{doc_id}
     { "doc_id": "b59168c41e5e4a0d", "source": "a.pdf", "etag": "d41d8cd98f00b204e9800998ecf8427e",
       "status_url": "/api/kb/kb-01/docs/b59168c41e5e4a0d/status" },
     { "title": "b.xyz", "error": "Unsupported file format: .xyz", "status": "error" }
-  ]
+  ],
+  "detail": "Unsupported file format: .xyz"
 }
 ```
 
@@ -608,12 +646,15 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/docs/{doc_id}
 | `/api/kb/{kb_id}/docs/{doc_id}/fail`, `/recover` | POST | editor |
 | `/api/docs` (전체 KB 통합 조회) | GET | super-admin |
 | `/api/docs/status` (전체 KB 집계) | GET | super-admin |
-| `/api/connectors` 이하 전체 | — | admin 이상 |
+| `/api/connectors` 조회 (목록·상세·`/sync/status`·`/docs`) | GET | viewer |
+| `/api/connectors/{id}/sync`, `/sync/abort`, `/api/connectors/{id}` 수정 | POST / PATCH | editor |
+| `/api/connectors` 생성, `/api/connectors/{id}` 삭제 | POST / DELETE | admin |
 
 공통 규칙:
 
 - KB가 frozen 상태(owner 없음)이면 viewer를 초과하는 모든 쓰기 요청은 HTTP 403.
 - 요청한 KB에 대한 역할이 없으면 HTTP 403, KB 자체가 없으면 HTTP 404.
+- 신규 문서 인제스트 시 KB의 비삭제 문서 수가 `max_docs_count` 상한에 도달하면 HTTP 403 (super-admin 우회). 배치 업로드는 위 [배치 업로드 응답](#배치-업로드-응답) 형식으로 반환한다.
 - `kb_authz_enabled=false`이면 위 역할 요구사항이 모두 스킵되고 인증(토큰 유효성)만 검사한다.
 
 ---
@@ -801,7 +842,7 @@ curl "http://localhost:8000/api/docs?status=failed&search=report&sort_by=updated
 커넥터는 외부 소스(웹 크롤러, Confluence, GitHub)에서 문서를 자동으로 수집해 KB에 인덱싱합니다.
 파일 직접 업로드(7장)와 달리, 커넥터는 sync 트리거 시 소스를 순회하며 변경된 문서만 재인덱싱합니다.
 
-`/api/connectors` 이하 전체 엔드포인트에 admin 이상 역할이 필요합니다 (7장 "문서 API 확장" 참고). [ENT]
+`/api/connectors` 엔드포인트는 역할별로 나뉩니다 — 조회(GET)는 viewer, sync 트리거·중단·설정 변경(PATCH)은 editor, 생성·삭제는 admin (7장 "문서 API 확장" 참고). 목록 조회는 호출자가 읽을 수 있는 KB(멤버십 보유 KB + 공개 KB)로 스코프됩니다. [ENT]
 
 ### 커넥터 생성
 

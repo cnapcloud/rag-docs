@@ -217,21 +217,22 @@ queue_poll:
 ```yaml
 provider:
   name: "ollama"
-  ollama_url: "http://localhost:11434"
-  openai_api_key: ""
+  url: ""
+  api_key: ""
 ```
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
-| `name` | `"ollama"` | `ollama`: 로컬 Ollama 서버. `openai`: OpenAI API — embedding, (Enterprise) `ingestion.image_captioning` 공통 |
-| `ollama_url` | `"http://localhost:11434"` | Ollama 서버 주소 |
-| `openai_api_key` | `""` | OpenAI provider 사용 시 필수 |
+| `name` | `"ollama"` | `ollama` / `openai` / `jina`, 또는 그 외 값(= OpenAI 호환 엔드포인트 폴백, 이름 그대로 사용). embedding과 (Enterprise) `ingestion.image_captioning`이 공유 — 단 캡셔닝은 `jina` 미지원 |
+| `url` | `""` | 백엔드 주소. 빈 값이면 provider 기본 엔드포인트 사용 (`ollama`는 bare host, OpenAI 호환은 `/v1`까지 포함한 완전 URL) |
+| `api_key` | `""` | `openai` / `jina` / OpenAI 호환 폴백에서 사용. `OPENAI_API_KEY` 환경변수로도 주입 |
 
 **운영 고려사항**
 
 - `name`을 바꾸면 embedding과 image_captioning(Enterprise) 양쪽 모두 백엔드가 바뀐다 — 둘 중 하나만 다른 provider를 쓰고 싶다면 이 설정으로는 불가능하다(두 기능이 이 블록 하나를 공유).
-- `openai_api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
-- Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 엔드포인트 확인 시 `ollama: false`가 나오면 모델 로딩 중인 경우다.
+- `api_key`는 `OPENAI_API_KEY` 환경변수로 주입한다. 파일에 직접 기록하지 않는다.
+- 이전 필드명 `ollama_url` / `openai_api_key`는 더 이상 인식되지 않는다 — `url` / `api_key`로 옮겨야 한다.
+- Ollama 모델은 첫 요청 시 모델 파일을 로드한다. 이 과정이 수십 초 걸릴 수 있다. 서비스 기동 직후 `/ready` 응답의 provider 항목(기본 `ollama`)이 `false`면 모델 로딩 중인 경우다. `/ready`는 provider 종류와 무관하게 `{url}/v1/models`로 도달성을 확인하고, 응답에 최상위 `provider` 필드를 포함한다.
 
 ---
 
@@ -460,7 +461,7 @@ chunking:
 
 ## 12. embedding
 
-임베딩 모델 설정. dense 벡터 생성에 사용하며, sparse는 클라이언트가 TF만 계산하고 IDF는 Qdrant 서버가 코퍼스 기반으로 자동 관리한다. 백엔드 연결 정보(`ollama_url`/`openai_api_key`)는 [§8 provider](#8-provider)로 분리되어 있다 — 여기는 모델명/차원수만 다룬다.
+임베딩 모델 설정. dense 벡터 생성에 사용하며, sparse는 클라이언트가 TF만 계산하고 IDF는 Qdrant 서버가 코퍼스 기반으로 자동 관리한다. 백엔드 연결 정보(`url`/`api_key`)는 [§8 provider](#8-provider)로 분리되어 있다 — 여기는 모델명/차원수만 다룬다.
 
 ```yaml
 embedding:
@@ -722,6 +723,9 @@ KB 단위 RBAC 관련 설정. 역할 판정 경로와 role 계층은 [접근 제
 ```yaml
 authz:
   super_admin_role: "rag-super-admin"
+  kb_creator_roles: ["rag-kb-creator"]
+  max_kb_count: 3
+  max_docs_count: 5
   role_cache_ttl_seconds: 60
   invite_expiry_days: 7
 ```
@@ -729,11 +733,15 @@ authz:
 | 키 | 기본값 | 설명 |
 |----|--------|------|
 | `super_admin_role` | `"rag-super-admin"` | JWT `groups` claim에서 슈퍼관리자 여부를 판정하는 그룹명 |
+| `kb_creator_roles` | `["rag-kb-creator"]` | `POST /api/kb`로 KB를 생성할 수 있는 `groups` 값 목록. 하나라도 일치하면 허용. 빈 리스트(코드 기본값)면 super-admin만 생성 가능(fail-closed). 문자열 하나만 줘도 1-원소 리스트로 해석됨 |
+| `max_kb_count` | `3` | 사용자당 생성 가능한 KB 수 상한. `0` = 무제한. super-admin은 우회. 사용자별로는 `PATCH /api/users/{user_id}/quota`(→ `user_profile.max_kb_count`)로 오버라이드 |
+| `max_docs_count` | `5` | KB당 비삭제 문서 수 상한. 신규 문서 인제스트(업로드·배치·커넥터 sync) 직전에 검사, 도달 시 HTTP 403. `0` = 무제한, super-admin 우회. 이 값은 초기값이며 `PATCH /api/admin/config`로 런타임에 덮어쓸 수 있다 |
 | `role_cache_ttl_seconds` | `60` | Redis에 캐시하는 KB 역할·접근 가능 KB 목록의 TTL. 역할 변경 시에는 캐시가 즉시 무효화되므로, 이 TTL은 무효화가 누락된 경우의 보수적 상한이다 |
 | `invite_expiry_days` | `7` | 이메일 초대의 유효 기간(일) |
 
 `kb_authz_enabled`(RBAC 전체 on/off)는 이 섹션의 설정값이 아니라 `GET`/`PATCH /api/admin/config`로
-런타임에 토글하는 시스템 설정이다 — [API Guide §6.4](api-guide.md)와
+런타임에 토글하는 시스템 설정이다. 같은 API가 `max_docs_count`의 런타임 값도 함께 노출한다 —
+[API Guide §6.4](api-guide.md)와
 [SSO·인증 설정의 RBAC 활성화](../guides/rag-ent/sso-and-auth-setup.md#rbac-활성화) 참고.
 
 ---
