@@ -19,7 +19,7 @@ LibreChat(CNAP AI Chat)이 MCP로 rag-api의 `search` 툴을 호출해 자연어
   }}
 >
   <iframe
-    src="https://www.youtube.com/embed/__oBtce6EWg"
+    src="https://www.youtube.com/embed/umf6n-lEXro"
     title="LibreChat 연동 데모"
     loading="lazy"
     frameborder="0"
