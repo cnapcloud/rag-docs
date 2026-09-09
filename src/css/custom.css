@@ -46,3 +46,8 @@ body {
 .navbar__items:not(.navbar__items--right) .navbar__brand + .navbar__item {
   margin-left: 1.75rem;
 }
+
+/* Shrink the navbar logo (default is 2rem) */
+.navbar__logo {
+  height: 1.5rem;
+}
