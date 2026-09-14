@@ -493,7 +493,7 @@ embedding:
 
 ## 13. retrieval
 
-검색 방식과 파라미터 설정. `auto_merge`를 제외한 나머지는 검색 요청의 `options` 필드로 요청 단위 오버라이드가 가능하다(우선순위: 요청값 > 이 전역 설정값). `auto_merge`만 KB 단위로도 오버라이드할 수 있다 — [API Guide §3 KB 설정 오버라이드](api-guide.md#kb-설정-오버라이드) 참고. 여러 KB를 한 요청으로 합쳐 검색할 때 병합(RRF)과 리랭크는 병합된 결과 전체에 대해 정확히 한 번만 일어나므로, `auto_merge` 외 나머지 필드는 KB별로 다른 값을 가질 수 없다.
+검색 방식과 파라미터 설정. `auto_merge`를 제외한 나머지는 검색 요청의 `options` 필드로 요청 단위 오버라이드가 가능하다(우선순위: 요청값 > 이 전역 설정값). `auto_merge`만 KB 단위로도 오버라이드할 수 있다 — [API Guide §3 KB 설정 오버라이드](api-guide.md#kb-설정-오버라이드) 참고. 여러 KB를 한 요청으로 합쳐 검색할 때 병합(RRF)과 리랭크는 병합된 결과 전체에 대해 정확히 한 번만 일어나므로, `auto_merge` 외 나머지 필드는 KB별로 다른 값을 가질 수 없다. `cache`는 요청 단위·KB 단위 오버라이드 대상이 아니다 — 전역 설정으로만 동작한다.
 
 ```yaml
 retrieval:
@@ -515,6 +515,12 @@ retrieval:
   auto_merge:
     enabled: false
     merge_threshold: 0.5
+  cache:
+    enabled: false
+    ttl_seconds: 3600
+    max_entries: 1000
+    match_mode: "exact"
+    semantic_threshold: 0.95
 ```
 
 ### 기본 설정
@@ -583,6 +589,34 @@ parent-child 계층 청킹([§11 chunking](#11-chunking)의 `strategy: "hierarch
 - 3-level 이상 계층에서는 레벨을 타고 올라가며 반복 병합되고, 한 레벨에서 threshold 미달로 병합에 실패한 결과는 상위 레벨에서 재시도되지 않는다.
 - 검색 응답의 `merged`/`parent_chunk_id` 필드는 [API Guide §13 검색 — 응답 필드](api-guide.md#응답-필드)에서 다룬다.
 - `retrieval` 중 이 필드만 KB별로 오버라이드 가능하다(`retrieval.auto_merge.enabled`, `retrieval.auto_merge.merge_threshold`) — [API Guide §3](api-guide.md#kb-설정-오버라이드) 참고.
+
+### cache 설정
+
+동일하거나 유사한 검색 질의에 대한 최종 응답(리랭크까지 끝난 결과)을 Redis에 캐시해, 반복
+검색·리랭킹 비용을 줄인다.
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `enabled` | `false` | 검색 응답 캐시 활성화 여부 |
+| `ttl_seconds` | `3600` | 캐시 항목 유효 시간(초) |
+| `max_entries` | `1000` | 캐시 최대 항목 수. 초과 시 FIFO로 오래된 항목부터 축출 |
+| `match_mode` | `"exact"` | `exact`: 질의 문자열이 정확히 같을 때만 히트. `semantic`: 임베딩 코사인 유사도 기반으로도 히트 |
+| `semantic_threshold` | `0.95` | `match_mode: "semantic"`일 때 히트로 판정할 코사인 유사도 기준 |
+
+**운영 고려사항 (cache)**
+
+- 캐시 키는 질의 텍스트, 대상 KB, 검색 옵션(`alpha`, `top_k` 등)을 함께 반영한다 — 같은
+  질의라도 KB나 옵션이 다르면 별도 캐시 항목으로 취급된다.
+- `match_mode: "semantic"`은 임베딩 유사도 비교가 추가되므로 `exact` 대비 캐시 조회 비용이
+  늘어난다. `semantic_threshold`를 너무 낮추면 실제로는 다른 의도의 질의가 같은 응답을
+  반환받을 수 있다.
+- 인제스트·삭제로 KB 문서가 바뀌어도 기존 캐시 항목은 `ttl_seconds`가 지나기 전까지 자동
+  무효화되지 않는다 — 문서가 자주 바뀌는 KB에서는 `ttl_seconds`를 짧게 잡거나 `enabled`를
+  꺼두는 것을 검토한다.
+- [ENT] rag-ent는 KB의 public/private 구분에 따라 이 캐시를 선택적으로 우회한다 — 검색
+  대상 KB 중 하나라도 private가 섞여 있으면 그 요청은 캐시를 타지 않는다. 이 판단은
+  rag-ent 쪽 캐시 게이트 훅에서 이루어지며, `retrieval.cache` 설정 자체는 rag-api·rag-ent
+  양쪽에서 동일하게 적용된다.
 
 ---
 

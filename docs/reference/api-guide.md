@@ -1393,6 +1393,29 @@ curl -X POST http://localhost:8000/api/search \
 | `parent_chunk_id` | 이 청크가 속한 상위(parent) 청크 ID. root 청크이거나 `hierarchical` 전략이 아니면 `null` |
 | `meta.score_threshold` | 실제 적용된 `similarity.min_score`. hybrid 모드에서는 항상 `0.0`(미적용) |
 
+### 캐시 클리어
+
+`retrieval.cache.enabled`가 켜져 있을 때, 검색 응답 캐시를 수동으로 비웁니다
+([설정 §13 retrieval — cache](configuration.md#cache-설정) 참고). `kb_id`를 지정하면 그
+KB가 캐시 키에 포함된 항목만, 생략하면 캐시 전체를 비웁니다.
+
+```bash
+# 특정 KB 관련 캐시만 클리어
+curl -X DELETE "http://localhost:8000/api/search/cache?kb_id=kb-01"
+
+# 전체 캐시 클리어
+curl -X DELETE http://localhost:8000/api/search/cache
+```
+
+응답 (HTTP 200):
+
+```json
+{ "status": "cleared", "kb_id": "kb-01", "cleared_count": 12 }
+```
+
+존재하지 않는 `kb_id`나 이미 비어 있는 캐시도 정상 200으로 처리됩니다(`cleared_count: 0`).
+Redis 자체 장애는 감추지 않고 그대로 전파되어 HTTP 503으로 응답합니다.
+
 ### 모드별 점수(score) 및 복수 KB 집계 방식
 
 **hybrid 모드**
@@ -1413,6 +1436,9 @@ curl -X POST http://localhost:8000/api/search \
 ### 검색 API 확장 [ENT]
 
 `POST /api/search`는 viewer 이상 필요. 요청한 `kb_ids` 중 호출자가 접근 권한이 없는 KB는 검색 전에 자동으로 제외됩니다. super-admin이거나 `kb_authz_enabled=false`이면 필터링이 적용되지 않습니다. 필터링 후 남는 KB가 하나도 없으면 (Core처럼 422가 아니라) 빈 결과로 HTTP 200을 반환합니다.
+
+`DELETE /api/search/cache`는 인증만 필요하고 KB 역할 요구사항은 없습니다 — rag-ent가 이
+경로를 KB 역할 검사로 감싸지 않으므로 rag-api 원본 동작 그대로 노출됩니다.
 
 ```bash
 curl -X POST http://localhost:8000/api/search \
