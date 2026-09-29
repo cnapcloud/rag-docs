@@ -726,7 +726,50 @@ logging:
 
 ---
 
-## 18. oidc [ENT]
+## 18. download
+
+검색 결과의 `download_url` 형식 설정. `download_url`은 원본이 S3에 저장된 문서(`source_type=s3`)에만
+채워지고, 그 외 문서는 `null`이다.
+
+```yaml
+download:
+  base_url: "http://localhost:8000"
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `base_url` | `null` | 설정하면 `download_url`이 이 origin을 앞에 붙인 절대 URL이 된다(끝의 `/`는 제거). 비워 두면 `/api/kb/{kb_id}/docs/{doc_id}/download` 같은 상대 경로로 남는다 |
+
+**운영 고려사항**
+
+- LLM·MCP 클라이언트처럼 이 API의 요청 컨텍스트 밖에서 링크를 쓰는 소비자에게는 상대 경로가 의미가 없다. MCP로 검색 결과를 노출한다면 `base_url`을 설정한다.
+- 값은 링크를 **실제로 여는 쪽**(사용자 브라우저)이 접근할 수 있는 외부 origin이어야 한다. 클러스터 내부 Service 주소(`http://rag-api.llm.svc...`)를 넣으면 링크가 사용자 환경에서 열리지 않는다.
+
+### 확장 필드 [ENT]
+
+Enterprise는 `download_url`을 세션 없이 열 수 있는 1회용 토큰 링크(`/api/downloads/{token}`)로
+바꿔 내려준다 — [API Guide §13 검색 API 확장](api-guide.md#검색-api-확장-ent) 참고. `base_url`은
+Core와 동일하게 이 토큰 링크의 앞에 붙는다.
+
+```yaml
+download:
+  base_url: "http://localhost:8000"   # unset -> download_url stays a relative path
+  token_ttl_seconds: 300   # download-link token validity; single-use, invalidated on first GET regardless
+```
+
+| 키 | 기본값 | 설명 |
+|----|--------|------|
+| `token_ttl_seconds` | `300` | 다운로드 링크 토큰의 유효 시간(초, 최소 `1`). 이 값과 무관하게 토큰은 첫 `GET` 요청에서 즉시 무효화된다(1회용) |
+
+**운영 고려사항**
+
+- 토큰 링크는 인증 없이 열리고, 다운로드 시점에는 권한을 다시 확인하지 않는다(권한 검증은 발급 시점에 1회). 링크가 유출됐을 때 막아주는 것은 짧은 유효 시간과 1회용 무효화뿐이므로 값을 크게 늘리지 않는다.
+- 1회용이므로 같은 링크를 다시 누르거나, 메신저의 링크 미리보기(unfurl)·브라우저 prefetch가 먼저 요청하거나, 다운로드가 중간에 끊겨 재시도하면 404가 난다. 다시 받으려면 검색을 다시 해 새 링크를 받는다.
+- 토큰은 Redis(`dl:{token}` 키)에 저장되며, Redis가 재시작되면 발급된 링크는 모두 무효가 된다.
+
+---
+
+## 19. oidc [ENT]
 
 Keycloak OIDC 연동 설정. 클라이언트·그룹 구성 절차는 [SSO·인증 설정](../guides/rag-ent/sso-and-auth-setup.md) 참고.
 
@@ -750,7 +793,7 @@ oidc:
 
 ---
 
-## 19. authz [ENT]
+## 20. authz [ENT]
 
 KB 단위 RBAC 관련 설정. 역할 판정 경로와 role 계층은 [접근 제어](../concepts/access-control.md) 참고.
 
@@ -780,7 +823,7 @@ authz:
 
 ---
 
-## 20. smtp [ENT]
+## 21. smtp [ENT]
 
 멤버 초대·역할 부여 이메일 발송 설정. 다른 Enterprise 기능은 SMTP에 의존하지 않는다. 상세는
 [멤버십·초대·소유권 관리의 알림 메일 설정](../guides/rag-ent/membership-and-invites.md#알림-메일-설정-smtp) 참고.
@@ -805,7 +848,7 @@ smtp:
 
 ---
 
-## 21. rate_limit [ENT]
+## 22. rate_limit [ENT]
 
 사용자별 API 요청 제한 설정. 규칙 매칭·카운팅 방식은
 [사용자별 요청 제한](../guides/rag-ent/rate-limiting.md) 참고.

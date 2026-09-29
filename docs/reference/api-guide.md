@@ -18,8 +18,8 @@ Base URL: `http://localhost:8000`
 
 ## 1. 인증 및 권한 [ENT]
 
-인증 및 권한 관리는 Enterprise에서 제공하는 기능으로 Swagger UI(`/docs`)도 `/health`, `/ready`를
-제외한 모든 경로에 `BearerAuth` 스킴이 자동 부여되어 Authorize 버튼으로 토큰을 넣고 테스트할 수 있다.
+인증 및 권한 관리는 Enterprise에서 제공하는 기능으로 Swagger UI(`/docs`)도 `/health`, `/ready`,
+`/api/downloads/{token}`을 제외한 모든 경로에 `BearerAuth` 스킴이 자동 부여되어 Authorize 버튼으로 토큰을 넣고 테스트할 수 있다.
 
 사용자별 요청 제한도 함께 적용된다 — 아래 어떤 엔드포인트든 한도를 초과하면 `Retry-After`
 헤더와 함께 HTTP 429를 반환할 수 있다. 규칙·응답 형식은
@@ -27,7 +27,7 @@ Base URL: `http://localhost:8000`
 
 ### 1.1 인증 (Authentication)
 
-모든 요청은 `Authorization: Bearer <JWT>` 헤더가 필요하다 (`/health`, `/ready`, `/docs`, `/redoc`, `/openapi.json` 제외). 토큰은 Keycloak이 발급하는 OIDC ID 토큰/액세스 토큰이며, Enterprise API 자체에는 로그인 엔드포인트가 없다 — Keycloak의 표준 토큰 엔드포인트를 직접 사용한다.
+모든 요청은 `Authorization: Bearer <JWT>` 헤더가 필요하다 (`/health`, `/ready`, `/docs`, `/redoc`, `/openapi.json`, `/api/downloads/{token}` 제외 — 마지막은 URL의 토큰 자체가 인증 수단이다, [§13 토큰 링크로 다운로드](#토큰-링크로-다운로드-ent) 참고). 토큰은 Keycloak이 발급하는 OIDC ID 토큰/액세스 토큰이며, Enterprise API 자체에는 로그인 엔드포인트가 없다 — Keycloak의 표준 토큰 엔드포인트를 직접 사용한다.
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/kb
@@ -50,7 +50,7 @@ JWT의 `groups` claim에 super-admin 그룹명(설정 키 `authz.super_admin_rol
 
 super-admin은 모든 KB에서 owner로 취급된다. `kb_authz_enabled`가 `false`(6.4절 시스템 설정 참고 — `settings.yaml` 키가 아니라 런타임에 토글하는 시스템 설정값)이면 역할 체크 자체가 스킵되고 인증만 요구한다.
 
-Keycloak 클라이언트·그룹 설정, `oidc`/`authz` 섹션의 상세 필드는 [설정](configuration.md#18-oidc-ent)과
+Keycloak 클라이언트·그룹 설정, `oidc`/`authz` 섹션의 상세 필드는 [설정](configuration.md#19-oidc-ent)과
 [SSO·인증 설정](../guides/rag-ent/sso-and-auth-setup.md)에서 다룬다.
 
 ---
@@ -493,7 +493,7 @@ curl -X DELETE "http://localhost:8000/api/users?email=user@example.com" \
 `GET /api/admin/config`, `PATCH /api/admin/config` — super-admin 전용. 런타임에 덮어쓸 수 있는 시스템 설정을 노출한다.
 
 - `kb_authz_enabled` — RBAC 기능 전체 on/off 스위치
-- `max_docs_count` — KB당 비삭제 문서 수 상한 ([설정 §19](configuration.md#19-authz-ent)의 초기값을 런타임 값으로 대체)
+- `max_docs_count` — KB당 비삭제 문서 수 상한 ([설정 §20](configuration.md#20-authz-ent)의 초기값을 런타임 값으로 대체)
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/admin/config
@@ -641,6 +641,7 @@ curl -X DELETE http://localhost:8000/api/kb/kb-01/docs/{doc_id}
 | `/api/kb/{kb_id}/docs/status` | GET | viewer |
 | `/api/kb/{kb_id}/docs/{doc_id}/status` | GET | viewer |
 | `/api/kb/{kb_id}/docs/{doc_id}/download` | GET | viewer |
+| `/api/downloads/{token}` | GET | 없음 — 인증 헤더 불필요, 토큰 자체가 인증 수단 ([토큰 링크로 다운로드](#토큰-링크로-다운로드-ent)) |
 | `/api/kb/{kb_id}/docs/{doc_id}` | DELETE | editor |
 | `/api/kb/{kb_id}/reindex`, `/docs/{doc_id}/reindex` | POST | editor |
 | `/api/kb/{kb_id}/docs/{doc_id}/fail`, `/recover` | POST | editor |
@@ -1370,7 +1371,8 @@ curl -X POST http://localhost:8000/api/search \
       "rerank_score": 0.91,
       "updated_at": "2026-06-19T14:32:00+09:00",
       "merged": true,
-      "parent_chunk_id": "b59168c41e5e4a0d:0"
+      "parent_chunk_id": "b59168c41e5e4a0d:0",
+      "download_url": "/api/kb/kb-01/docs/b59168c41e5e4a0d/download"
     }
   ],
   "meta": {
@@ -1392,6 +1394,7 @@ curl -X POST http://localhost:8000/api/search \
 | `chunk_index` | `merged=true`인 결과는 여러 leaf 청크를 합친 것이라 단일 시퀀스 위치가 없으므로 `null` |
 | `parent_chunk_id` | 이 청크가 속한 상위(parent) 청크 ID. root 청크이거나 `hierarchical` 전략이 아니면 `null` |
 | `meta.score_threshold` | 실제 적용된 `similarity.min_score`. hybrid 모드에서는 항상 `0.0`(미적용) |
+| `download_url` | 원본 파일 다운로드 경로. 원본이 S3에 있는 문서(`source_type=s3`)에만 채워지고 그 외는 `null`. `download.base_url`을 설정하면 절대 URL이 된다 — [설정 §18 download](configuration.md#18-download) 참고. Enterprise에서는 1회용 토큰 링크로 바뀐다([토큰 링크로 다운로드](#토큰-링크로-다운로드-ent)) |
 
 ### 캐시 클리어
 
@@ -1445,6 +1448,40 @@ curl -X POST http://localhost:8000/api/search \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"query": "검색어", "kb_ids": ["kb-01", "kb-02"], "options": {"mode": "hybrid", "top_k": 10}}'
 ```
+
+### 토큰 링크로 다운로드 [ENT]
+
+Enterprise는 검색 결과(REST `POST /api/search`와 MCP `search` 툴 모두)의 `download_url`을
+세션·인증 헤더 없이 열 수 있는 1회용 토큰 링크로 바꿔 내려준다. LLM 답변이나 채팅 화면에
+링크를 그대로 노출해도 사용자가 클릭만으로 원본을 받을 수 있게 하기 위함이다.
+
+```json
+{ "download_url": "http://localhost:8000/api/downloads/Qm9vX3Rva2VuX2V4YW1wbGVfb25seV9ub3RfcmVhbA" }
+```
+
+```bash
+# Authorization 헤더 없이 호출
+curl -OJ http://localhost:8000/api/downloads/{token}
+```
+
+| 항목 | 동작 |
+|------|------|
+| 발급 | 검색 시 결과 항목마다 발급. 호출자가 그 문서의 KB에 viewer 이상 권한이 있을 때만 발급하고, 없으면(또는 발급 중 Redis 오류가 나면) 해당 항목의 `download_url`은 `null` — 검색 자체는 실패하지 않는다. super-admin·`kb_authz_enabled=false`면 권한 검사 없이 발급 |
+| 유효 시간 | `download.token_ttl_seconds`(기본 300초) — [설정 §18 download](configuration.md#18-download) 참고 |
+| 1회용 | 첫 `GET` 요청에서 즉시 무효화된다. 같은 링크로 다시 요청하면 404 |
+| 권한 재확인 | 하지 않는다. 발급 후 KB 권한이 회수돼도 유효 시간 안에 처음 여는 것이면 다운로드된다 |
+| 응답 | 유효한 토큰이면 인증된 다운로드 경로(`GET /api/kb/{kb_id}/docs/{doc_id}/download`)와 동일한 스트리밍 응답 |
+
+토큰이 없거나, 만료됐거나, 이미 사용된 경우 HTTP 404:
+
+```json
+{ "detail": "Invalid or expired download token" }
+```
+
+토큰을 발급한 뒤 문서가 삭제된 경우에도 HTTP 404(문서 없음)를 반환한다.
+
+같은 링크를 다시 클릭하거나, 메신저의 링크 미리보기(unfurl)·브라우저 prefetch가 먼저 요청하거나,
+다운로드가 중간에 끊겨 재시도하면 404가 난다. 이때는 검색을 다시 해 새 링크를 받는다.
 
 ---
 
