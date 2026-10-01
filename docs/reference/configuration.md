@@ -747,25 +747,33 @@ download:
 
 ### 확장 필드 [ENT]
 
-Enterprise는 `download_url`을 세션 없이 열 수 있는 1회용 토큰 링크(`/api/downloads/{token}`)로
+Enterprise는 기본적으로 `download_url`을 세션 없이 열 수 있는 토큰 링크(`/api/downloads/{token}`)로
 바꿔 내려준다 — [API Guide §13 검색 API 확장](api-guide.md#검색-api-확장-ent) 참고. `base_url`은
-Core와 동일하게 이 토큰 링크의 앞에 붙는다.
+Core와 동일하게 이 토큰 링크의 앞에 붙는다. 세 키 모두 변경하면 재시작이 필요하다.
 
 ```yaml
 download:
   base_url: "http://localhost:8000"   # unset -> download_url stays a relative path
-  token_ttl_seconds: 300   # download-link token validity; single-use, invalidated on first GET regardless
+  token_links: true          # false -> download_url stays the authenticated path, /api/downloads/{token} is not mounted
+  single_use: false          # false -> token reusable until TTL; true -> invalidated by the first successful download
+  token_ttl_seconds: 21600   # token validity (6h); access is re-checked on every download
 ```
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
-| `token_ttl_seconds` | `300` | 다운로드 링크 토큰의 유효 시간(초, 최소 `1`). 이 값과 무관하게 토큰은 첫 `GET` 요청에서 즉시 무효화된다(1회용) |
+| `token_links` | `true` | 토큰 링크 기능의 on/off. `false`면 `download_url`은 토큰으로 바뀌지 않고 인증이 필요한 원본 경로(`/api/kb/{kb_id}/docs/{doc_id}/download`) 그대로 내려가며, `/api/downloads/{token}` 경로 자체가 존재하지 않는다(404) |
+| `single_use` | `false` | `false`면 유효 시간 동안 같은 링크를 반복해서 열 수 있다. `true`면 권한 재확인을 통과한 첫 다운로드에서 토큰이 무효화된다 |
+| `token_ttl_seconds` | `21600` | 다운로드 링크 토큰의 유효 시간(초, 최소 `1`). 기본 6시간 |
 
 **운영 고려사항**
 
-- 토큰 링크는 인증 없이 열리고, 다운로드 시점에는 권한을 다시 확인하지 않는다(권한 검증은 발급 시점에 1회). 링크가 유출됐을 때 막아주는 것은 짧은 유효 시간과 1회용 무효화뿐이므로 값을 크게 늘리지 않는다.
-- 1회용이므로 같은 링크를 다시 누르거나, 메신저의 링크 미리보기(unfurl)·브라우저 prefetch가 먼저 요청하거나, 다운로드가 중간에 끊겨 재시도하면 404가 난다. 다시 받으려면 검색을 다시 해 새 링크를 받는다.
+- 토큰 링크는 인증 없이 열리지만, **다운로드 요청마다** 토큰을 발급받은 사용자가 그 KB에 viewer 이상 권한을 아직 갖는지 다시 확인한다. KB 멤버십이 회수되면 이미 발급된 링크도 404가 되고, 권한이 복구되면 유효 시간 안에서 다시 열린다.
+- LLM 대화는 이전 답변의 링크 텍스트를 서버가 통제할 수 없는 시점에 다시 보여 주므로 재사용(`single_use: false`)이 기본이다. 링크 미리보기(unfurl)·prefetch·중간에 끊긴 다운로드 재시도에도 링크가 깨지지 않는다.
+- 링크가 유출되는 것이 걱정되면 `single_use: true`로 1회용으로 좁히거나 `token_ttl_seconds`를 줄인다. 1회용에서는 권한 재확인에 실패한 요청이 토큰을 소진하지 않는다. 토큰 링크가 필요 없는 환경은 `token_links: false`로 끈다.
+- 권한 재확인 중 Redis/DB 오류가 나면 문서를 내려주지 않고 503으로 응답한다.
+- TTL이 지난 링크는 만료되므로 새 검색으로 새 링크를 받아야 한다.
 - 토큰은 Redis(`dl:{token}` 키)에 저장되며, Redis가 재시작되면 발급된 링크는 모두 무효가 된다.
+- 이전 버전(항상 켜짐, 1회용, 5분)의 동작이 필요하면 `single_use: true`와 `token_ttl_seconds: 300`을 명시한다.
 
 ---
 

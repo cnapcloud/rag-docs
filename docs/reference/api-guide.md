@@ -1394,7 +1394,7 @@ curl -X POST http://localhost:8000/api/search \
 | `chunk_index` | `merged=true`인 결과는 여러 leaf 청크를 합친 것이라 단일 시퀀스 위치가 없으므로 `null` |
 | `parent_chunk_id` | 이 청크가 속한 상위(parent) 청크 ID. root 청크이거나 `hierarchical` 전략이 아니면 `null` |
 | `meta.score_threshold` | 실제 적용된 `similarity.min_score`. hybrid 모드에서는 항상 `0.0`(미적용) |
-| `download_url` | 원본 파일 다운로드 경로. 원본이 S3에 있는 문서(`source_type=s3`)에만 채워지고 그 외는 `null`. `download.base_url`을 설정하면 절대 URL이 된다 — [설정 §18 download](configuration.md#18-download) 참고. Enterprise에서는 1회용 토큰 링크로 바뀐다([토큰 링크로 다운로드](#토큰-링크로-다운로드-ent)) |
+| `download_url` | 원본 파일 다운로드 경로. 원본이 S3에 있는 문서(`source_type=s3`)에만 채워지고 그 외는 `null`. `download.base_url`을 설정하면 절대 URL이 된다 — [설정 §18 download](configuration.md#18-download) 참고. Enterprise에서는 기본적으로 토큰 링크로 바뀐다(`download.token_links`, [토큰 링크로 다운로드](#토큰-링크로-다운로드-ent)) |
 
 ### 캐시 클리어
 
@@ -1451,9 +1451,11 @@ curl -X POST http://localhost:8000/api/search \
 
 ### 토큰 링크로 다운로드 [ENT]
 
-Enterprise는 검색 결과(REST `POST /api/search`와 MCP `search` 툴 모두)의 `download_url`을
-세션·인증 헤더 없이 열 수 있는 1회용 토큰 링크로 바꿔 내려준다. LLM 답변이나 채팅 화면에
-링크를 그대로 노출해도 사용자가 클릭만으로 원본을 받을 수 있게 하기 위함이다.
+Enterprise는 기본적으로(`download.token_links: true`) 검색 결과(REST `POST /api/search`와 MCP
+`search` 툴 모두)의 `download_url`을 세션·인증 헤더 없이 열 수 있는 토큰 링크로 바꿔 내려준다.
+LLM 답변이나 채팅 화면에 링크를 그대로 노출해도 사용자가 클릭만으로 원본을 받을 수 있게 하기 위함이다.
+`token_links: false`면 `download_url`은 인증이 필요한 원본 경로 그대로 내려가고 `/api/downloads/{token}`
+경로는 존재하지 않는다(404).
 
 ```json
 { "download_url": "http://localhost:8000/api/downloads/Qm9vX3Rva2VuX2V4YW1wbGVfb25seV9ub3RfcmVhbA" }
@@ -1467,12 +1469,12 @@ curl -OJ http://localhost:8000/api/downloads/{token}
 | 항목 | 동작 |
 |------|------|
 | 발급 | 검색 시 결과 항목마다 발급. 호출자가 그 문서의 KB에 viewer 이상 권한이 있을 때만 발급하고, 없으면(또는 발급 중 Redis 오류가 나면) 해당 항목의 `download_url`은 `null` — 검색 자체는 실패하지 않는다. super-admin·`kb_authz_enabled=false`면 권한 검사 없이 발급 |
-| 유효 시간 | `download.token_ttl_seconds`(기본 300초) — [설정 §18 download](configuration.md#18-download) 참고 |
-| 1회용 | 첫 `GET` 요청에서 즉시 무효화된다. 같은 링크로 다시 요청하면 404 |
-| 권한 재확인 | 하지 않는다. 발급 후 KB 권한이 회수돼도 유효 시간 안에 처음 여는 것이면 다운로드된다 |
+| 유효 시간 | `download.token_ttl_seconds`(기본 21600초, 6시간) — [설정 §18 download](configuration.md#18-download) 참고 |
+| 재사용 | 기본(`download.single_use: false`)은 유효 시간 동안 같은 링크를 반복해서 열 수 있다. `single_use: true`면 권한 재확인을 통과한 첫 다운로드에서 무효화되어 다음 요청은 404 |
+| 권한 재확인 | 다운로드 요청마다 토큰 발급자가 그 KB에 viewer 이상 권한을 아직 갖는지 확인한다. 권한이 회수되면 404(무효 토큰과 구분되지 않음), 복구되면 유효 시간 안에서 다시 열린다. 확인 중 Redis/DB 오류는 503 |
 | 응답 | 유효한 토큰이면 인증된 다운로드 경로(`GET /api/kb/{kb_id}/docs/{doc_id}/download`)와 동일한 스트리밍 응답 |
 
-토큰이 없거나, 만료됐거나, 이미 사용된 경우 HTTP 404:
+토큰이 없거나, 만료됐거나, 1회용 모드에서 이미 사용됐거나, 발급자의 권한이 회수된 경우 HTTP 404:
 
 ```json
 { "detail": "Invalid or expired download token" }
@@ -1480,8 +1482,9 @@ curl -OJ http://localhost:8000/api/downloads/{token}
 
 토큰을 발급한 뒤 문서가 삭제된 경우에도 HTTP 404(문서 없음)를 반환한다.
 
-같은 링크를 다시 클릭하거나, 메신저의 링크 미리보기(unfurl)·브라우저 prefetch가 먼저 요청하거나,
-다운로드가 중간에 끊겨 재시도하면 404가 난다. 이때는 검색을 다시 해 새 링크를 받는다.
+유효 시간이 지난 링크는 만료되므로 검색을 다시 해 새 링크를 받는다. `single_use: true`에서는 같은 링크를
+다시 클릭하거나 메신저의 링크 미리보기(unfurl)·브라우저 prefetch가 먼저 요청하거나 다운로드가 중간에
+끊겨 재시도하는 경우에도 404가 난다. 권한 재확인에 실패한 요청은 토큰을 소진하지 않는다.
 
 ---
 
